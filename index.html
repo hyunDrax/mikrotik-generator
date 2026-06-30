@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MikroTik Multi-ISP PCC Generator (Flexi-IP)</title>
+    <title>MikroTik Multi-ISP PCC Generator</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; color: #333; }
         .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
@@ -15,7 +15,6 @@
         select, input[type="text"] { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
         select { font-weight: bold; background-color: white; }
 
-        /* Style khusus area checkbox sakelar */
         .toggle-container { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: bold; color: #1e3a8a; cursor: pointer; }
         .toggle-container input { cursor: pointer; width: 15px; height: 15px; margin: 0; }
 
@@ -44,7 +43,7 @@
 
 <div class="container">
     <h2>MikroTik Multi-ISP PCC Generator (ROS v6 / v7)</h2>
-    <p class="subtitle">Layout 3x2 Simetris — Dilengkapi Sakelar Filter IP Lokal (Spesifik / Global)</p>
+    <p class="subtitle">Sistem Stabil — Address-List: private-lokal</p>
     
     <div class="setup-row">
         <div class="setup-group" style="flex: 0 0 160px;">
@@ -56,7 +55,7 @@
         </div>
         <div class="setup-group" style="flex: 0 0 140px;">
             <label>Jumlah ISP Aktif:</label>
-            <select id="total_isp" onchange="toggleISPSlots()">
+            <select id="total_isp" onchange="jalankanSistemAplikasi()">
                 <option value="2">2 ISP</option>
                 <option value="3" selected>3 ISP</option>
                 <option value="4">4 ISP</option>
@@ -68,7 +67,7 @@
             <label>IP Lokal / Target Network:</label>
             <input type="text" id="src_network" value="10.210.224.0/20">
             <label class="toggle-container">
-                <input type="checkbox" id="use_src_network" checked onchange="toggleSrcNetworkInput()"> 
+                <input type="checkbox" id="use_src_network" checked onchange="jalankanSistemAplikasi()"> 
                 <span>Aktifkan Filter IP Lokal (Centang = Spesifik, Uncheck = Global)</span>
             </label>
         </div>
@@ -129,9 +128,21 @@
 </div>
 
 <script>
-function toggleISPSlots() {
+function jalankanSistemAplikasi() {
     const totalAktif = parseInt(document.getElementById('total_isp').value);
+    const useSrcNet = document.getElementById('use_src_network').checked;
+    const srcInput = document.getElementById('src_network');
     
+    if (useSrcNet) {
+        srcInput.removeAttribute('disabled');
+        srcInput.style.backgroundColor = "#ffffff";
+        srcInput.style.color = "#333333";
+    } else {
+        srcInput.setAttribute('disabled', 'disabled');
+        srcInput.style.backgroundColor = "#cbd5e1";
+        srcInput.style.color = "#64748b";
+    }
+
     for (let i = 1; i <= 6; i++) {
         const box = document.getElementById(`box_isp${i}`);
         const badge = document.getElementById(`badge_isp${i}`);
@@ -165,28 +176,12 @@ function toggleISPSlots() {
     }
 }
 
-function toggleSrcNetworkInput() {
-    const useSrcNet = document.getElementById('use_src_network').checked;
-    const srcInput = document.getElementById('src_network');
-    
-    if (useSrcNet) {
-        srcInput.removeAttribute('disabled');
-        srcInput.style.backgroundColor = "#ffffff";
-        srcInput.style.color = "#333333";
-    } else {
-        srcInput.setAttribute('disabled', 'disabled');
-        srcInput.style.backgroundColor = "#cbd5e1";
-        srcInput.style.color = "#64748b";
-    }
-}
-
 function generatePCCEngine() {
     const rosVersion = document.getElementById('ros_version').value;
     const totalISP = parseInt(document.getElementById('total_isp').value);
     const prefix = document.getElementById('comment_prefix').value;
     const isFilteredIP = document.getElementById('use_src_network').checked;
     
-    // Logika penentuan parameter src-address dinamis
     let srcAddressParam = "";
     let targetLogText = "GLOBAL (Semua Traffic Jaringan)";
     
@@ -213,6 +208,13 @@ function generatePCCEngine() {
     script += `# Generated automatically\n`;
     script += `# =======================================================\n\n`;
     
+    script += `# --- OTOMATISASI GENERATE ADDRESS LIST (RFC 1918) ---\n`;
+    script += `/ip firewall address-list\n`;
+    script += `add address=10.0.0.0/8 list=private-lokal comment="RFC1918 Class A"\n`;
+    script += `add address=172.16.0.0/12 list=private-lokal comment="RFC1918 Class B"\n`;
+    script += `add address=192.168.0.0/16 list=private-lokal comment="RFC1918 Class C"\n`;
+    script += `\n`;
+
     if (rosVersion === 'v7') {
         script += `# --- KHUSUS v7: DAFTARKAN ROUTING TABLE TERLEBIH DAHULU ---\n`;
         script += `/routing table\n`;
@@ -222,15 +224,8 @@ function generatePCCEngine() {
         script += `\n`;
     }
 
-    // 1. FIREWALL MANGLE SECTION
     script += `/ip firewall mangle\n`;
-    
-    // Rule Bypass Lokal disesuaikan dengan kondisi sakelar checkbox
-    if (isFilteredIP) {
-        script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=LAN${srcAddressParam}\n\n`;
-    } else {
-        script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=LAN\n\n`;
-    }
+    script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=private-lokal${srcAddressParam}\n\n`;
     
     script += `# --- TANDAI KONEKSI (Mark Connection) ---\n`;
     activeIsps.forEach((isp, index) => {
@@ -244,7 +239,7 @@ function generatePCCEngine() {
     });
     script += `\n`;
 
-    script += `# --- Input & Output Chain (Traffic ke Router Sendiri) ---\n`;
+    script += `# --- Input & Output Chain ---\n`;
     activeIsps.forEach(isp => {
         script += `add action=mark-connection chain=input in-interface=${isp.interface} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
     });
@@ -253,9 +248,8 @@ function generatePCCEngine() {
     });
     script += `\n`;
 
-    // 2. IP ROUTE SECTION (Recursive Gateway)
     script += `/ip route\n`;
-    script += `# --- Jalur Virtual ke Host Target (Scope: 10) ---\n`;
+    script += `# --- Jalur Virtual ke Host Target ---\n`;
     activeIsps.forEach(isp => {
         script += `add dst-address=${isp.host} gateway=${isp.gateway} scope=10 distance=1 comment="Bridge_Recursive_ISP${isp.id}"\n`;
     });
@@ -271,7 +265,7 @@ function generatePCCEngine() {
     });
     script += `\n`;
     
-    script += `# --- Main Routing / Failover Utama Router (Tanpa Routing Mark) ---\n`;
+    script += `# --- Main Routing / Failover Utama ---\n`;
     activeIsps.forEach((isp, index) => {
         if (rosVersion === 'v7') {
             script += `add gateway=${isp.host} check-gateway=ping target-scope=11 distance=${index + 1} comment="Main_Failover_v7_ISP${isp.id}"\n`;
@@ -281,7 +275,6 @@ function generatePCCEngine() {
     });
     script += `\n`;
 
-    // 3. IP FIREWALL NAT SECTION
     script += `/ip firewall nat\n`;
     activeIsps.forEach(isp => {
         script += `add chain=srcnat out-interface=${isp.interface} action=masquerade comment="NAT_ISP${isp.id}"\n`;
@@ -290,10 +283,8 @@ function generatePCCEngine() {
     document.getElementById('output_script').value = script;
 }
 
-// Inisialisasi awal saat DOM siap dimuat
 document.addEventListener("DOMContentLoaded", function() {
-    toggleISPSlots();
-    toggleSrcNetworkInput();
+    jalankanSistemAplikasi();
 });
 </script>
 
