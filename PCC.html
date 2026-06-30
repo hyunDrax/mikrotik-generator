@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MikroTik Multi-ISP PCC Generator (Flexi-IP)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h2 { text-align: center; color: #1e3a8a; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #6b7280; margin-bottom: 25px; }
+        
+        .setup-row { display: flex; gap: 20px; background: #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+        .setup-group { display: flex; flex-direction: column; flex: 1; min-width: 180px; }
+        select, input[type="text"] { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        select { font-weight: bold; background-color: white; }
+
+        /* Style khusus area checkbox sakelar */
+        .toggle-container { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: bold; color: #1e3a8a; cursor: pointer; }
+        .toggle-container input { cursor: pointer; width: 15px; height: 15px; margin: 0; }
+
+        .grid-isp { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        
+        @media (max-width: 768px) {
+            .grid-isp { grid-template-columns: 1fr; }
+        }
+
+        .isp-box { background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; transition: all 0.2s ease; }
+        .isp-box h4 { margin-top: 0; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; display: flex; justify-content: space-between; }
+        
+        .isp-box .status-badge { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .status-active { background: #dcfce7; color: #15803d; }
+        .status-disabled { background: #cbd5e1; color: #475569; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
+        
+        button { background-color: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button:hover { background-color: #1d4ed8; }
+        textarea { width: 100%; height: 550px; font-family: 'Courier New', Courier, monospace; padding: 12px; background: #1e1e1e; color: #d4d4d4; border: none; border-radius: 6px; margin-top: 15px; box-sizing: border-box; font-size: 13px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>MikroTik Multi-ISP PCC Generator (ROS v6 / v7)</h2>
+    <p class="subtitle">Layout 3x2 Simetris — Dilengkapi Sakelar Filter IP Lokal (Spesifik / Global)</p>
+    
+    <div class="setup-row">
+        <div class="setup-group" style="flex: 0 0 160px;">
+            <label>Versi RouterOS:</label>
+            <select id="ros_version">
+                <option value="v7" selected>RouterOS v7 (Stable)</option>
+                <option value="v6">RouterOS v6 (Legacy)</option>
+            </select>
+        </div>
+        <div class="setup-group" style="flex: 0 0 140px;">
+            <label>Jumlah ISP Aktif:</label>
+            <select id="total_isp" onchange="toggleISPSlots()">
+                <option value="2">2 ISP</option>
+                <option value="3" selected>3 ISP</option>
+                <option value="4">4 ISP</option>
+                <option value="5">5 ISP</option>
+                <option value="6">6 ISP</option>
+            </select>
+        </div>
+        <div class="setup-group">
+            <label>IP Lokal / Target Network:</label>
+            <input type="text" id="src_network" value="10.210.224.0/20">
+            <label class="toggle-container">
+                <input type="checkbox" id="use_src_network" checked onchange="toggleSrcNetworkInput()"> 
+                <span>Aktifkan Filter IP Lokal (Centang = Spesifik, Uncheck = Global)</span>
+            </label>
+        </div>
+        <div class="setup-group" style="flex: 0 0 180px;">
+            <label>Prefix Komen (Comment):</label>
+            <input type="text" id="comment_prefix" value="PCC 10M">
+        </div>
+    </div>
+    
+    <div class="grid-isp">
+        <div class="isp-box" id="box_isp1">
+            <h4>ISP 1 <span class="status-badge status-active" id="badge_isp1">Aktif</span></h4>
+            <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan1_int" value="ether1-ISP1"></div>
+            <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan1_gw" value="192.168.1.1"></div>
+            <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan1_host" value="8.8.8.8"></div>
+        </div>
+
+        <div class="isp-box" id="box_isp2">
+            <h4>ISP 2 <span class="status-badge status-active" id="badge_isp2">Aktif</span></h4>
+            <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan2_int" value="ether2-ISP2"></div>
+            <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan2_gw" value="192.168.2.1"></div>
+            <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan2_host" value="8.4.4.4"></div>
+        </div>
+
+        <div class="isp-box" id="box_isp3">
+            <h4>ISP 3 <span class="status-badge status-active" id="badge_isp3">Aktif</span></h4>
+            <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan3_int" value="ether3-ISP3"></div>
+            <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan3_gw" value="192.168.3.1"></div>
+            <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan3_host" value="1.1.1.1"></div>
+        </div>
+
+        <div class="isp-box" id="box_isp4">
+            <h4>ISP 4 <span class="status-badge status-active" id="badge_isp4">Aktif</span></h4>
+            <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan4_int" value="ether4-ISP4"></div>
+            <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan4_gw" value="192.168.4.1"></div>
+            <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan4_host" value="1.0.0.1"></div>
+        </div>
+
+        <div class="isp-box" id="box_isp5">
+            <h4>ISP 5 <span class="status-badge status-active" id="badge_isp5">Aktif</span></h4>
+            <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan5_int" value="ether5-ISP5"></div>
+            <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan5_gw" value="192.168.5.1"></div>
+            <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan5_host" value="9.9.9.9"></div>
+        </div>
+
+        <div class="isp-box" id="box_isp6">
+            <h4>ISP 6 <span class="status-badge status-active" id="badge_isp6">Aktif</span></h4>
+            <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan6_int" value="ether6-ISP6"></div>
+            <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan6_gw" value="192.168.6.1"></div>
+            <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan6_host" value="208.67.222.222"></div>
+        </div>
+    </div>
+
+    <button onclick="generatePCCEngine()">Generate Script</button>
+
+    <h3 style="margin-top: 25px; color: #0f172a;">Hasil Script MikroTik:</h3>
+    <textarea id="output_script" readonly placeholder="Klik tombol Generate Script..."></textarea>
+</div>
+
+<script>
+function toggleISPSlots() {
+    const totalAktif = parseInt(document.getElementById('total_isp').value);
+    
+    for (let i = 1; i <= 6; i++) {
+        const box = document.getElementById(`box_isp${i}`);
+        const badge = document.getElementById(`badge_isp${i}`);
+        const inputs = box.getElementsByTagName('input');
+        
+        if (i <= totalAktif) {
+            box.style.backgroundColor = "#f8fafc";
+            box.style.borderColor = "#e2e8f0";
+            box.style.opacity = "1";
+            badge.innerText = "Aktif";
+            badge.className = "status-badge status-active";
+            
+            for (let j = 0; j < inputs.length; j++) { 
+                inputs[j].removeAttribute('disabled'); 
+                inputs[j].style.backgroundColor = "#ffffff";
+                inputs[j].style.color = "#333333";
+            }
+        } else {
+            box.style.backgroundColor = "#cbd5e1";
+            box.style.borderColor = "#94a3b8";
+            box.style.opacity = "0.4";
+            badge.innerText = "Disable";
+            badge.className = "status-badge status-disabled";
+            
+            for (let j = 0; j < inputs.length; j++) { 
+                inputs[j].setAttribute('disabled', 'disabled'); 
+                inputs[j].style.backgroundColor = "#94a3b8";
+                inputs[j].style.color = "#1e293b";
+            }
+        }
+    }
+}
+
+function toggleSrcNetworkInput() {
+    const useSrcNet = document.getElementById('use_src_network').checked;
+    const srcInput = document.getElementById('src_network');
+    
+    if (useSrcNet) {
+        srcInput.removeAttribute('disabled');
+        srcInput.style.backgroundColor = "#ffffff";
+        srcInput.style.color = "#333333";
+    } else {
+        srcInput.setAttribute('disabled', 'disabled');
+        srcInput.style.backgroundColor = "#cbd5e1";
+        srcInput.style.color = "#64748b";
+    }
+}
+
+function generatePCCEngine() {
+    const rosVersion = document.getElementById('ros_version').value;
+    const totalISP = parseInt(document.getElementById('total_isp').value);
+    const prefix = document.getElementById('comment_prefix').value;
+    const isFilteredIP = document.getElementById('use_src_network').checked;
+    
+    // Logika penentuan parameter src-address dinamis
+    let srcAddressParam = "";
+    let targetLogText = "GLOBAL (Semua Traffic Jaringan)";
+    
+    if (isFilteredIP) {
+        const srcNetworkValue = document.getElementById('src_network').value;
+        srcAddressParam = ` src-address=${srcNetworkValue}`;
+        targetLogText = `SPESIFIK (Hanya Network ${srcNetworkValue})`;
+    }
+    
+    const activeIsps = [];
+    for(let i = 1; i <= totalISP; i++) {
+        activeIsps.push({
+            id: i,
+            interface: document.getElementById(`wan${i}_int`).value,
+            gateway: document.getElementById(`wan${i}_gw`).value,
+            host: document.getElementById(`wan${i}_host`).value
+        });
+    }
+
+    let script = `# =======================================================\n`;
+    script += `# MIKROTIK LOAD BALANCE PCC (${totalISP} ISP) \n`;
+    script += `# Target Cakupan  : ${targetLogText}\n`;
+    script += `# Target RouterOS : ${rosVersion.toUpperCase()}\n`;
+    script += `# Generated automatically\n`;
+    script += `# =======================================================\n\n`;
+    
+    if (rosVersion === 'v7') {
+        script += `# --- KHUSUS v7: DAFTARKAN ROUTING TABLE TERLEBIH DAHULU ---\n`;
+        script += `/routing table\n`;
+        activeIsps.forEach(isp => {
+            script += `add disabled=no fib name=via-ISP${isp.id}\n`;
+        });
+        script += `\n`;
+    }
+
+    // 1. FIREWALL MANGLE SECTION
+    script += `/ip firewall mangle\n`;
+    
+    // Rule Bypass Lokal disesuaikan dengan kondisi sakelar checkbox
+    if (isFilteredIP) {
+        script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=LAN${srcAddressParam}\n\n`;
+    } else {
+        script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=LAN\n\n`;
+    }
+    
+    script += `# --- TANDAI KONEKSI (Mark Connection) ---\n`;
+    activeIsps.forEach((isp, index) => {
+        script += `add action=mark-connection chain=prerouting comment="${prefix}: Kunci Koneksi ISP ${isp.id}" connection-mark=no-mark dst-address-type=!local${srcAddressParam} per-connection-classifier=both-addresses:${totalISP}/${index} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
+    });
+    script += `\n`;
+
+    script += `# --- EKSEKUSI ROUTING (Mark Routing) ---\n`;
+    activeIsps.forEach(isp => {
+        script += `add action=mark-routing chain=prerouting comment="${prefix}: Eksekusi ke Jalur ISP ${isp.id}" connection-mark=ISP${isp.id}_conn${srcAddressParam} new-routing-mark=via-ISP${isp.id} passthrough=no\n`;
+    });
+    script += `\n`;
+
+    script += `# --- Input & Output Chain (Traffic ke Router Sendiri) ---\n`;
+    activeIsps.forEach(isp => {
+        script += `add action=mark-connection chain=input in-interface=${isp.interface} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
+    });
+    activeIsps.forEach(isp => {
+        script += `add action=mark-routing chain=output connection-mark=ISP${isp.id}_conn new-routing-mark=via-ISP${isp.id} passthrough=no\n`;
+    });
+    script += `\n`;
+
+    // 2. IP ROUTE SECTION (Recursive Gateway)
+    script += `/ip route\n`;
+    script += `# --- Jalur Virtual ke Host Target (Scope: 10) ---\n`;
+    activeIsps.forEach(isp => {
+        script += `add dst-address=${isp.host} gateway=${isp.gateway} scope=10 distance=1 comment="Bridge_Recursive_ISP${isp.id}"\n`;
+    });
+    script += `\n`;
+
+    script += `# --- Routing Policy via Host Target ---\n`;
+    activeIsps.forEach(isp => {
+        if (rosVersion === 'v7') {
+            script += `add gateway=${isp.host} routing-table=via-ISP${isp.id} check-gateway=ping target-scope=11 distance=1 comment="Policy_Route_v7_ISP${isp.id}"\n`;
+        } else {
+            script += `add gateway=${isp.host} routing-mark=via-ISP${isp.id} check-gateway=ping target-scope=10 distance=1 comment="Policy_Route_v6_ISP${isp.id}"\n`;
+        }
+    });
+    script += `\n`;
+    
+    script += `# --- Main Routing / Failover Utama Router (Tanpa Routing Mark) ---\n`;
+    activeIsps.forEach((isp, index) => {
+        if (rosVersion === 'v7') {
+            script += `add gateway=${isp.host} check-gateway=ping target-scope=11 distance=${index + 1} comment="Main_Failover_v7_ISP${isp.id}"\n`;
+        } else {
+            script += `add gateway=${isp.host} check-gateway=ping target-scope=10 distance=${index + 1} comment="Main_Failover_v6_ISP${isp.id}"\n`;
+        }
+    });
+    script += `\n`;
+
+    // 3. IP FIREWALL NAT SECTION
+    script += `/ip firewall nat\n`;
+    activeIsps.forEach(isp => {
+        script += `add chain=srcnat out-interface=${isp.interface} action=masquerade comment="NAT_ISP${isp.id}"\n`;
+    });
+
+    document.getElementById('output_script').value = script;
+}
+
+// Inisialisasi awal saat DOM siap dimuat
+document.addEventListener("DOMContentLoaded", function() {
+    toggleISPSlots();
+    toggleSrcNetworkInput();
+});
+</script>
+
+</body>
+</html>
