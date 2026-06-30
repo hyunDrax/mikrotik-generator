@@ -12,7 +12,7 @@
         
         .setup-row { display: flex; gap: 20px; background: #e2e8f0; padding: 15px; border-radius: 8px; margin-bottom: 20px; flex-wrap: wrap; }
         .setup-group { display: flex; flex-direction: column; flex: 1; min-width: 180px; }
-        select, input[type="text"] { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        select, input[type="text"], input[type="number"] { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
         select { font-weight: bold; background-color: white; }
 
         .toggle-container { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: bold; color: #1e3a8a; cursor: pointer; }
@@ -34,6 +34,8 @@
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
         
+        .ratio-input { background-color: #fef08a !important; font-weight: bold; color: #854d0e !important; border: 1px solid #facc15 !important; }
+
         button.btn-main { background-color: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
         button.btn-main:hover { background-color: #1d4ed8; }
 
@@ -49,8 +51,9 @@
 
 <div class="container">
     <h2>MikroTik Multi-ISP PCC Generator (ROS v6 / v7)</h2>
-    <p class="subtitle">Sistem Stabil — Address-List: private-lokal</p>
+    <p class="subtitle">Sistem Kustom Beban Bandwidth — Address-List: private-lokal</p>
     
+    <!-- KONTROL UTAMA -->
     <div class="setup-row">
         <div class="setup-group" style="flex: 0 0 160px;">
             <label>Versi RouterOS:</label>
@@ -83,44 +86,57 @@
         </div>
     </div>
     
+    <!-- GRID FORM INPUT ISP -->
     <div class="grid-isp">
+        <!-- ISP 1 -->
         <div class="isp-box" id="box_isp1">
             <h4>ISP 1 <span class="status-badge status-active" id="badge_isp1">Aktif</span></h4>
+            <div class="form-group"><label>Rasio Beban Bandwidth:</label><input type="number" id="wan1_ratio" class="ratio-input" value="1" min="1"></div>
             <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan1_int" value="ether1-ISP1"></div>
             <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan1_gw" value="192.168.1.1"></div>
             <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan1_host" value="8.8.8.8"></div>
         </div>
 
+        <!-- ISP 2 -->
         <div class="isp-box" id="box_isp2">
             <h4>ISP 2 <span class="status-badge status-active" id="badge_isp2">Aktif</span></h4>
+            <div class="form-group"><label>Rasio Beban Bandwidth:</label><input type="number" id="wan2_ratio" class="ratio-input" value="1" min="1"></div>
             <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan2_int" value="ether2-ISP2"></div>
             <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan2_gw" value="192.168.2.1"></div>
             <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan2_host" value="8.4.4.4"></div>
         </div>
 
+        <!-- ISP 3 -->
         <div class="isp-box" id="box_isp3">
             <h4>ISP 3 <span class="status-badge status-active" id="badge_isp3">Aktif</span></h4>
+            <div class="form-group"><label>Rasio Beban Bandwidth:</label><input type="number" id="wan3_ratio" class="ratio-input" value="1" min="1"></div>
             <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan3_int" value="ether3-ISP3"></div>
             <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan3_gw" value="192.168.3.1"></div>
             <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan3_host" value="1.1.1.1"></div>
         </div>
 
+        <!-- ISP 4 -->
         <div class="isp-box" id="box_isp4">
             <h4>ISP 4 <span class="status-badge status-active" id="badge_isp4">Aktif</span></h4>
+            <div class="form-group"><label>Rasio Beban Bandwidth:</label><input type="number" id="wan4_ratio" class="ratio-input" value="1" min="1"></div>
             <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan4_int" value="ether4-ISP4"></div>
             <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan4_gw" value="192.168.4.1"></div>
             <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan4_host" value="1.0.0.1"></div>
         </div>
 
+        <!-- ISP 5 -->
         <div class="isp-box" id="box_isp5">
             <h4>ISP 5 <span class="status-badge status-active" id="badge_isp5">Aktif</span></h4>
+            <div class="form-group"><label>Rasio Beban Bandwidth:</label><input type="number" id="wan5_ratio" class="ratio-input" value="1" min="1"></div>
             <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan5_int" value="ether5-ISP5"></div>
             <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan5_gw" value="192.168.5.1"></div>
             <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan5_host" value="9.9.9.9"></div>
         </div>
 
+        <!-- ISP 6 -->
         <div class="isp-box" id="box_isp6">
             <h4>ISP 6 <span class="status-badge status-active" id="badge_isp6">Aktif</span></h4>
+            <div class="form-group"><label>Rasio Beban Bandwidth:</label><input type="number" id="wan6_ratio" class="ratio-input" value="1" min="1"></div>
             <div class="form-group"><label>Interface WAN:</label><input type="text" id="wan6_int" value="ether6-ISP6"></div>
             <div class="form-group"><label>Gateway (IP):</label><input type="text" id="wan6_gw" value="192.168.6.1"></div>
             <div class="form-group"><label>Target Host Recursive:</label><input type="text" id="wan6_host" value="208.67.222.222"></div>
@@ -129,6 +145,7 @@
 
     <button class="btn-main" onclick="generatePCCEngine()">Generate Script</button>
 
+    <!-- OUTPUT SCRIPT DENGAN TOMBOL COPY -->
     <div class="output-header">
         <h3>Hasil Script MikroTik:</h3>
         <button class="btn-copy" id="btn_copy_script" onclick="salinKeClipboard()">Copy Script</button>
@@ -157,7 +174,12 @@ function jalankanSistemAplikasi() {
             box.style.backgroundColor = "#f8fafc"; box.style.borderColor = "#e2e8f0"; box.style.opacity = "1";
             badge.innerText = "Aktif"; badge.className = "status-badge status-active";
             for (let j = 0; j < inputs.length; j++) { 
-                inputs[j].removeAttribute('disabled'); inputs[j].style.backgroundColor = "#ffffff"; inputs[j].style.color = "#333333";
+                inputs[j].removeAttribute('disabled');
+                if(!inputs[j].classList.contains('ratio-input')) {
+                    inputs[j].style.backgroundColor = "#ffffff"; inputs[j].style.color = "#333333";
+                } else {
+                    inputs[j].style.backgroundColor = "#fef08a"; inputs[j].style.color = "#854d0e";
+                }
             }
         } else {
             box.style.backgroundColor = "#cbd5e1"; box.style.borderColor = "#94a3b8"; box.style.opacity = "0.4";
@@ -182,15 +204,27 @@ function generatePCCEngine() {
         targetLogText = `SPESIFIK (Hanya Network ${srcNetworkValue})`;
     }
     
+    // Tarik data ISP aktif dan kalkulasi Total Denominator Rasio
     const activeIsps = [];
+    let totalDenominator = 0;
+    
     for(let i = 1; i <= totalISP; i++) {
+        let rVal = parseInt(document.getElementById(`wan${i}_ratio`).value);
+        if (isNaN(rVal) || rVal < 1) { rVal = 1; } // Guarding system
+        
         activeIsps.push({
-            id: i, interface: document.getElementById(`wan${i}_int`).value, gateway: document.getElementById(`wan${i}_gw`).value, host: document.getElementById(`wan${i}_host`).value
+            id: i,
+            ratio: rVal,
+            interface: document.getElementById(`wan${i}_int`).value,
+            gateway: document.getElementById(`wan${i}_gw`).value,
+            host: document.getElementById(`wan${i}_host`).value
         });
+        totalDenominator += rVal;
     }
 
     let script = `# =======================================================\n`;
-    script += `# MIKROTIK LOAD BALANCE PCC (${totalISP} ISP) \n`;
+    script += `# MIKROTIK LOAD BALANCE PCC HETEROGEN (${totalISP} ISP) \n`;
+    script += `# Total Pembagi (Denominator PCC): ${totalDenominator} Bagian\n`;
     script += `# Target Cakupan  : ${targetLogText}\n`;
     script += `# Target RouterOS : ${rosVersion.toUpperCase()}\n`;
     script += `# Generated automatically\n`;
@@ -213,16 +247,24 @@ function generatePCCEngine() {
     script += `/ip firewall mangle\n`;
     script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=private-lokal${srcAddressParam}\n\n`;
     
-    activeIsps.forEach((isp, index) => {
-        script += `add action=mark-connection chain=prerouting comment="${prefix}: Kunci Koneksi ISP ${isp.id}" connection-mark=no-mark dst-address-type=!local${srcAddressParam} per-connection-classifier=both-addresses:${totalISP}/${index} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
+    script += `# --- TANDAI KONEKSI (Mangle PCC Otomatis Berdasarkan Rasio) ---\n`;
+    let currentRemainderIndex = 0;
+    activeIsps.forEach(isp => {
+        script += `# Distribusi Jalur Kelipatan ISP ${isp.id} (Mendapat ${isp.ratio} Bagian)\n`;
+        for(let step = 0; step < isp.ratio; step++) {
+            script += `add action=mark-connection chain=prerouting comment="${prefix}: Kunci Koneksi ISP ${isp.id} P-${currentRemainderIndex}" connection-mark=no-mark dst-address-type=!local${srcAddressParam} per-connection-classifier=both-addresses:${totalDenominator}/${currentRemainderIndex} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
+            currentRemainderIndex++;
+        }
     });
     script += `\n`;
 
+    script += `# --- EKSEKUSI ROUTING (Mark Routing) ---\n`;
     activeIsps.forEach(isp => {
         script += `add action=mark-routing chain=prerouting comment="${prefix}: Eksekusi ke Jalur ISP ${isp.id}" connection-mark=ISP${isp.id}_conn${srcAddressParam} new-routing-mark=via-ISP${isp.id} passthrough=no\n`;
     });
     script += `\n`;
 
+    script += `# --- Input & Output Chain ---\n`;
     activeIsps.forEach(isp => { script += `add action=mark-connection chain=input in-interface=${isp.interface} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`; });
     activeIsps.forEach(isp => { script += `add action=mark-routing chain=output connection-mark=ISP${isp.id}_conn new-routing-mark=via-ISP${isp.id} passthrough=no\n`; });
     script += `\n`;
