@@ -34,9 +34,15 @@
         .form-group { margin-bottom: 12px; }
         label { display: block; font-weight: 600; margin-bottom: 4px; font-size: 13px; }
         
-        button { background-color: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
-        button:hover { background-color: #1d4ed8; }
-        textarea { width: 100%; height: 550px; font-family: 'Courier New', Courier, monospace; padding: 12px; background: #1e1e1e; color: #d4d4d4; border: none; border-radius: 6px; margin-top: 15px; box-sizing: border-box; font-size: 13px; line-height: 1.5; }
+        button.btn-main { background-color: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; margin-top: 10px; }
+        button.btn-main:hover { background-color: #1d4ed8; }
+
+        .output-header { display: flex; justify-content: space-between; align-items: center; margin-top: 25px; margin-bottom: 8px; }
+        .output-header h3 { margin: 0; color: #0f172a; }
+        button.btn-copy { background-color: #10b981; color: white; padding: 6px 14px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold; transition: background 0.2s; }
+        button.btn-copy:hover { background-color: #059669; }
+
+        textarea { width: 100%; height: 550px; font-family: 'Courier New', Courier, monospace; padding: 12px; background: #1e1e1e; color: #d4d4d4; border: none; border-radius: 6px; box-sizing: border-box; font-size: 13px; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -73,7 +79,7 @@
         </div>
         <div class="setup-group" style="flex: 0 0 180px;">
             <label>Prefix Komen (Comment):</label>
-            <input type="text" id="comment_prefix" value="PCC 10M">
+            <input type="text" id="comment_prefix" value=".:: hyunDrax ::.">
         </div>
     </div>
     
@@ -121,9 +127,12 @@
         </div>
     </div>
 
-    <button onclick="generatePCCEngine()">Generate Script</button>
+    <button class="btn-main" onclick="generatePCCEngine()">Generate Script</button>
 
-    <h3 style="margin-top: 25px; color: #0f172a;">Hasil Script MikroTik:</h3>
+    <div class="output-header">
+        <h3>Hasil Script MikroTik:</h3>
+        <button class="btn-copy" id="btn_copy_script" onclick="salinKeClipboard()">Copy Script</button>
+    </div>
     <textarea id="output_script" readonly placeholder="Klik tombol Generate Script..."></textarea>
 </div>
 
@@ -134,13 +143,9 @@ function jalankanSistemAplikasi() {
     const srcInput = document.getElementById('src_network');
     
     if (useSrcNet) {
-        srcInput.removeAttribute('disabled');
-        srcInput.style.backgroundColor = "#ffffff";
-        srcInput.style.color = "#333333";
+        srcInput.removeAttribute('disabled'); srcInput.style.backgroundColor = "#ffffff"; srcInput.style.color = "#333333";
     } else {
-        srcInput.setAttribute('disabled', 'disabled');
-        srcInput.style.backgroundColor = "#cbd5e1";
-        srcInput.style.color = "#64748b";
+        srcInput.setAttribute('disabled', 'disabled'); srcInput.style.backgroundColor = "#cbd5e1"; srcInput.style.color = "#64748b";
     }
 
     for (let i = 1; i <= 6; i++) {
@@ -149,28 +154,16 @@ function jalankanSistemAplikasi() {
         const inputs = box.getElementsByTagName('input');
         
         if (i <= totalAktif) {
-            box.style.backgroundColor = "#f8fafc";
-            box.style.borderColor = "#e2e8f0";
-            box.style.opacity = "1";
-            badge.innerText = "Aktif";
-            badge.className = "status-badge status-active";
-            
+            box.style.backgroundColor = "#f8fafc"; box.style.borderColor = "#e2e8f0"; box.style.opacity = "1";
+            badge.innerText = "Aktif"; badge.className = "status-badge status-active";
             for (let j = 0; j < inputs.length; j++) { 
-                inputs[j].removeAttribute('disabled'); 
-                inputs[j].style.backgroundColor = "#ffffff";
-                inputs[j].style.color = "#333333";
+                inputs[j].removeAttribute('disabled'); inputs[j].style.backgroundColor = "#ffffff"; inputs[j].style.color = "#333333";
             }
         } else {
-            box.style.backgroundColor = "#cbd5e1";
-            box.style.borderColor = "#94a3b8";
-            box.style.opacity = "0.4";
-            badge.innerText = "Disable";
-            badge.className = "status-badge status-disabled";
-            
+            box.style.backgroundColor = "#cbd5e1"; box.style.borderColor = "#94a3b8"; box.style.opacity = "0.4";
+            badge.innerText = "Disable"; badge.className = "status-badge status-disabled";
             for (let j = 0; j < inputs.length; j++) { 
-                inputs[j].setAttribute('disabled', 'disabled'); 
-                inputs[j].style.backgroundColor = "#94a3b8";
-                inputs[j].style.color = "#1e293b";
+                inputs[j].setAttribute('disabled', 'disabled'); inputs[j].style.backgroundColor = "#94a3b8"; inputs[j].style.color = "#1e293b";
             }
         }
     }
@@ -182,9 +175,7 @@ function generatePCCEngine() {
     const prefix = document.getElementById('comment_prefix').value;
     const isFilteredIP = document.getElementById('use_src_network').checked;
     
-    let srcAddressParam = "";
-    let targetLogText = "GLOBAL (Semua Traffic Jaringan)";
-    
+    let srcAddressParam = ""; let targetLogText = "GLOBAL (Semua Traffic Jaringan)";
     if (isFilteredIP) {
         const srcNetworkValue = document.getElementById('src_network').value;
         srcAddressParam = ` src-address=${srcNetworkValue}`;
@@ -194,10 +185,7 @@ function generatePCCEngine() {
     const activeIsps = [];
     for(let i = 1; i <= totalISP; i++) {
         activeIsps.push({
-            id: i,
-            interface: document.getElementById(`wan${i}_int`).value,
-            gateway: document.getElementById(`wan${i}_gw`).value,
-            host: document.getElementById(`wan${i}_host`).value
+            id: i, interface: document.getElementById(`wan${i}_int`).value, gateway: document.getElementById(`wan${i}_gw`).value, host: document.getElementById(`wan${i}_host`).value
         });
     }
 
@@ -210,82 +198,76 @@ function generatePCCEngine() {
     
     script += `# --- OTOMATISASI GENERATE ADDRESS LIST (RFC 1918) ---\n`;
     script += `/ip firewall address-list\n`;
-    script += `add address=10.0.0.0/8 list=private-lokal comment="RFC1918 Class A"\n`;
-    script += `add address=172.16.0.0/12 list=private-lokal comment="RFC1918 Class B"\n`;
-    script += `add address=192.168.0.0/16 list=private-lokal comment="RFC1918 Class C"\n`;
+    script += `add address=10.0.0.0/8 list=private-lokal comment="${prefix}: RFC1918 Class A"\n`;
+    script += `add address=172.16.0.0/12 list=private-lokal comment="${prefix}: RFC1918 Class B"\n`;
+    script += `add address=192.168.0.0/16 list=private-lokal comment="${prefix}: RFC1918 Class C"\n`;
     script += `\n`;
 
     if (rosVersion === 'v7') {
-        script += `# --- KHUSUS v7: DAFTARKAN ROUTING TABLE TERLEBIH DAHULU ---\n`;
+        script += `# --- KHUSUS v7: ROUTING TABLE ---\n`;
         script += `/routing table\n`;
-        activeIsps.forEach(isp => {
-            script += `add disabled=no fib name=via-ISP${isp.id}\n`;
-        });
+        activeIsps.forEach(isp => { script += `add disabled=no fib name=via-ISP${isp.id}\n`; });
         script += `\n`;
     }
 
     script += `/ip firewall mangle\n`;
     script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=private-lokal${srcAddressParam}\n\n`;
     
-    script += `# --- TANDAI KONEKSI (Mark Connection) ---\n`;
     activeIsps.forEach((isp, index) => {
         script += `add action=mark-connection chain=prerouting comment="${prefix}: Kunci Koneksi ISP ${isp.id}" connection-mark=no-mark dst-address-type=!local${srcAddressParam} per-connection-classifier=both-addresses:${totalISP}/${index} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
     });
     script += `\n`;
 
-    script += `# --- EKSEKUSI ROUTING (Mark Routing) ---\n`;
     activeIsps.forEach(isp => {
         script += `add action=mark-routing chain=prerouting comment="${prefix}: Eksekusi ke Jalur ISP ${isp.id}" connection-mark=ISP${isp.id}_conn${srcAddressParam} new-routing-mark=via-ISP${isp.id} passthrough=no\n`;
     });
     script += `\n`;
 
-    script += `# --- Input & Output Chain ---\n`;
-    activeIsps.forEach(isp => {
-        script += `add action=mark-connection chain=input in-interface=${isp.interface} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`;
-    });
-    activeIsps.forEach(isp => {
-        script += `add action=mark-routing chain=output connection-mark=ISP${isp.id}_conn new-routing-mark=via-ISP${isp.id} passthrough=no\n`;
-    });
+    activeIsps.forEach(isp => { script += `add action=mark-connection chain=input in-interface=${isp.interface} new-connection-mark=ISP${isp.id}_conn passthrough=yes\n`; });
+    activeIsps.forEach(isp => { script += `add action=mark-routing chain=output connection-mark=ISP${isp.id}_conn new-routing-mark=via-ISP${isp.id} passthrough=no\n`; });
     script += `\n`;
 
     script += `/ip route\n`;
-    script += `# --- Jalur Virtual ke Host Target ---\n`;
-    activeIsps.forEach(isp => {
-        script += `add dst-address=${isp.host} gateway=${isp.gateway} scope=10 distance=1 comment="Bridge_Recursive_ISP${isp.id}"\n`;
-    });
+    activeIsps.forEach(isp => { script += `add dst-address=${isp.host} gateway=${isp.gateway} scope=10 distance=1 comment="${prefix}: Bridge_Recursive_ISP${isp.id}"\n`; });
     script += `\n`;
 
-    script += `# --- Routing Policy via Host Target ---\n`;
     activeIsps.forEach(isp => {
         if (rosVersion === 'v7') {
-            script += `add gateway=${isp.host} routing-table=via-ISP${isp.id} check-gateway=ping target-scope=11 distance=1 comment="Policy_Route_v7_ISP${isp.id}"\n`;
+            script += `add gateway=${isp.host} routing-table=via-ISP${isp.id} check-gateway=ping target-scope=11 distance=1 comment="${prefix}: Policy_Route_v7_ISP${isp.id}"\n`;
         } else {
-            script += `add gateway=${isp.host} routing-mark=via-ISP${isp.id} check-gateway=ping target-scope=10 distance=1 comment="Policy_Route_v6_ISP${isp.id}"\n`;
+            script += `add gateway=${isp.host} routing-mark=via-ISP${isp.id} check-gateway=ping target-scope=10 distance=1 comment="${prefix}: Policy_Route_v6_ISP${isp.id}"\n`;
         }
     });
     script += `\n`;
     
-    script += `# --- Main Routing / Failover Utama ---\n`;
     activeIsps.forEach((isp, index) => {
         if (rosVersion === 'v7') {
-            script += `add gateway=${isp.host} check-gateway=ping target-scope=11 distance=${index + 1} comment="Main_Failover_v7_ISP${isp.id}"\n`;
+            script += `add gateway=${isp.host} check-gateway=ping target-scope=11 distance=${index + 1} comment="${prefix}: Main_Failover_v7_ISP${isp.id}"\n`;
         } else {
-            script += `add gateway=${isp.host} check-gateway=ping target-scope=10 distance=${index + 1} comment="Main_Failover_v6_ISP${isp.id}"\n`;
+            script += `add gateway=${isp.host} check-gateway=ping target-scope=10 distance=${index + 1} comment="${prefix}: Main_Failover_v6_ISP${isp.id}"\n`;
         }
     });
     script += `\n`;
 
     script += `/ip firewall nat\n`;
-    activeIsps.forEach(isp => {
-        script += `add chain=srcnat out-interface=${isp.interface} action=masquerade comment="NAT_ISP${isp.id}"\n`;
-    });
+    activeIsps.forEach(isp => { script += `add chain=srcnat out-interface=${isp.interface} action=masquerade comment="${prefix}: NAT_ISP${isp.id}"\n`; });
 
     document.getElementById('output_script').value = script;
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-    jalankanSistemAplikasi();
-});
+function salinKeClipboard() {
+    const teksScript = document.getElementById('output_script');
+    const tombolCopy = document.getElementById('btn_copy_script');
+    if (!teksScript.value) { return; }
+    teksScript.select();
+    teksScript.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(teksScript.value).then(() => {
+        tombolCopy.innerText = "Copied!"; tombolCopy.style.backgroundColor = "#047857";
+        setTimeout(() => { tombolCopy.innerText = "Copy Script"; tombolCopy.style.backgroundColor = "#10b981"; }, 2000);
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function() { jalankanSistemAplikasi(); });
 </script>
 
 </body>
