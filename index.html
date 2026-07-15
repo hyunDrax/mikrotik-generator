@@ -216,11 +216,18 @@ function generatePCCEngine() {
     const isFilteredIP = document.getElementById('use_src_network').checked;
     const routingMethod = document.getElementById('routing_method').value;
     
-    let srcAddressParam = ""; let targetLogText = "GLOBAL (Semua Traffic Jaringan)";
+    let mangleSrcParam = ""; 
+    let targetLogText = "";
+    
     if (isFilteredIP) {
         const srcNetworkValue = document.getElementById('src_network').value;
-        srcAddressParam = ` src-address=${srcNetworkValue}`;
-        targetLogText = `SPESIFIK (Hanya Network ${srcNetworkValue})`;
+        // JIKA CENTANG AKTIF: Tembak ke IP Subnet spesifik yang ditulis user
+        mangleSrcParam = ` src-address=${srcNetworkValue}`;
+        targetLogText = `SPESIFIK SUBNET (Hanya Network ${srcNetworkValue})`;
+    } else {
+        // JIKA CENTANG MATI: Gunakan pengaman Address List global rfc1918
+        mangleSrcParam = ` src-address-list=private-lokal`;
+        targetLogText = `GLOBAL (Semua Address List private-lokal)`;
     }
     
     const activeIsps = [];
@@ -276,14 +283,15 @@ function generatePCCEngine() {
     script += `\n`;
 
     script += `/ip firewall mangle\n`;
-    script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" dst-address-list=private-lokal${srcAddressParam}\n\n`;
+    // BEST PRACTICE: Bypass lokal menggunakan interaksi src dan dst list agar aman terisolasi
+    script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" src-address-list=private-lokal dst-address-list=private-lokal\n\n`;
     
     script += `# --- TANDAI KONEKSI (Mangle PCC Otomatis Mandiri) ---\n`;
     let currentRemainderIndex = 0;
     activeIsps.forEach(isp => {
         script += `# Distribusi Jalur ISP ${isp.id} [${isp.routeName}] (Mendapat ${isp.ratio} Bagian)\n`;
         for(let step = 0; step < isp.ratio; step++) {
-            script += `add action=mark-connection chain=prerouting comment="${prefix}: Kunci Koneksi ISP ${isp.id} P-${currentRemainderIndex}" connection-mark=no-mark dst-address-type=!local${srcAddressParam} per-connection-classifier=both-addresses:${totalDenominator}/${currentRemainderIndex} new-connection-mark=${isp.connMark} passthrough=yes\n`;
+            script += `add action=mark-connection chain=prerouting comment="${prefix}: Kunci Koneksi ISP ${isp.id} P-${currentRemainderIndex}" connection-mark=no-mark${mangleSrcParam} dst-address-type=!local per-connection-classifier=both-addresses:${totalDenominator}/${currentRemainderIndex} new-connection-mark=${isp.connMark} passthrough=yes\n`;
             currentRemainderIndex++;
         }
     });
@@ -291,7 +299,7 @@ function generatePCCEngine() {
 
     script += `# --- EKSEKUSI ROUTING (Mark Routing) ---\n`;
     activeIsps.forEach(isp => {
-        script += `add action=mark-routing chain=prerouting comment="${prefix}: Eksekusi ke Jalur ${isp.routeName}" connection-mark=${isp.connMark}${srcAddressParam} new-routing-mark=${isp.routeName} passthrough=no\n`;
+        script += `add action=mark-routing chain=prerouting comment="${prefix}: Eksekusi ke Jalur ${isp.routeName}" connection-mark=${isp.connMark}${mangleSrcParam} new-routing-mark=${isp.routeName} passthrough=no\n`;
     });
     script += `\n`;
 
@@ -304,31 +312,33 @@ function generatePCCEngine() {
     
     if (routingMethod === 'recursive') {
         script += `# --- JALUR RECURSIVE ROUTING VIA TARGET HOST ---\n`;
-        // PERBAIKAN LOGIKA: v7 memaksa jembatan ke scope=30, v6 menggunakan default scope=10
+        
+        // 1. GENERATE RUTE JEMBATAN (BRIDGE / TARGET HOST SPECIFIC)
         activeIsps.forEach(isp => { 
             if (rosVersion === 'v7') {
-                script += `add dst-address=${isp.host} gateway=${isp.gateway} scope=30 target-scope=10 comment="${prefix}: Bridge_Recursive_ISP${isp.id}"\n`; 
+                script += `add dst-address=${isp.host}/32 gateway=${isp.gateway} scope=30 target-scope=10 comment="${prefix}: Bridge_Recursive_ISP${isp.id}"\n`; 
             } else {
-                script += `add dst-address=${isp.host} gateway=${isp.gateway} scope=10 distance=1 comment="${prefix}: Bridge_Recursive_ISP${isp.id}"\n`; 
+                script += `add dst-address=${isp.host}/32 gateway=${isp.gateway} scope=30 target-scope=10 distance=1 comment="${prefix}: Bridge_Recursive_ISP${isp.id}"\n`; 
             }
         });
         script += `\n`;
 
-        // PERBAIKAN LOGIKA: v7 menggunakan target-scope=30 untuk mengikat jembatan scope=30, v6 tetap target-scope=10
+        // 2. GENERATE RUTE KEBIJAKAN (POLICY ROUTES / TABLE MARKING)
         activeIsps.forEach(isp => {
             if (rosVersion === 'v7') {
                 script += `add gateway=${isp.host} routing-table=${isp.routeName} check-gateway=ping scope=30 target-scope=30 comment="${prefix}: Policy_Route_v7_${isp.id}"\n`;
             } else {
-                script += `add gateway=${isp.host} routing-mark=${isp.routeName} check-gateway=ping target-scope=10 distance=1 comment="${prefix}: Policy_Route_v6_${isp.id}"\n`;
+                script += `add gateway=${isp.host} routing-mark=${isp.routeName} check-gateway=ping scope=30 target-scope=30 distance=1 comment="${prefix}: Policy_Route_v6_${isp.id}"\n`;
             }
         });
         script += `\n`;
         
+        // 3. GENERATE RUTE UTAMA & BACKUP (MAIN FAILOVER)
         activeIsps.forEach((isp, index) => {
             if (rosVersion === 'v7') {
                 script += `add gateway=${isp.host} check-gateway=ping scope=30 target-scope=30 distance=${index + 1} comment="${prefix}: Main_Failover_v7_${isp.id}"\n`;
             } else {
-                script += `add gateway=${isp.host} check-gateway=ping target-scope=10 distance=${index + 1} comment="${prefix}: Main_Failover_v6_${isp.id}"\n`;
+                script += `add gateway=${isp.host} check-gateway=ping scope=30 target-scope=30 distance=${index + 1} comment="${prefix}: Main_Failover_v6_${isp.id}"\n`;
             }
         });
     } else {
