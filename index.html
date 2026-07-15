@@ -81,11 +81,11 @@
             </select>
         </div>
         <div class="setup-group">
-            <label>IP Lokal / Target Network:</label>
-            <input type="text" id="src_network" value="10.210.224.0/20">
+            <label>IP Lokal / Target Network / Address-List:</label>
+            <input type="text" id="src_network" value="10.20.30.10/30 / ADD-LIST">
             <label class="toggle-container">
-                <input type="checkbox" id="use_src_network" checked onchange="jalankanSistemAplikasi()"> 
-                <span>Filter IP Lokal (Centang = Aktif)</span>
+                <input type="checkbox" id="use_src_network" onchange="jalankanSistemAplikasi()"> 
+                <span>Filter Jaringan Lokal (Centang = Aktif)</span>
             </label>
         </div>
         <div class="setup-group" style="flex: 0 0 150px;">
@@ -220,14 +220,21 @@ function generatePCCEngine() {
     let targetLogText = "";
     
     if (isFilteredIP) {
-        const srcNetworkValue = document.getElementById('src_network').value;
-        // JIKA CENTANG AKTIF: Tembak ke IP Subnet spesifik yang ditulis user
-        mangleSrcParam = ` src-address=${srcNetworkValue}`;
-        targetLogText = `SPESIFIK SUBNET (Hanya Network ${srcNetworkValue})`;
+        const rawInput = document.getElementById('src_network').value.trim();
+        
+        // Deteksi IP menggunakan pattern Regex
+        const ipPattern = /^([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?$/;
+        
+        if (ipPattern.test(rawInput)) {
+            mangleSrcParam = ` src-address=${rawInput}`;
+            targetLogText = `SPESIFIK IP SUBNET (${rawInput})`;
+        } else {
+            mangleSrcParam = ` src-address-list=${rawInput}`;
+            targetLogText = `SPESIFIK ADDRESS LIST KUSTOM (${rawInput})`;
+        }
     } else {
-        // JIKA CENTANG MATI: Gunakan pengaman Address List global rfc1918
         mangleSrcParam = ` src-address-list=private-lokal`;
-        targetLogText = `GLOBAL (Semua Address List private-lokal)`;
+        targetLogText = `GLOBAL FALLBACK (Address List private-lokal)`;
     }
     
     const activeIsps = [];
@@ -283,7 +290,6 @@ function generatePCCEngine() {
     script += `\n`;
 
     script += `/ip firewall mangle\n`;
-    // BEST PRACTICE: Bypass lokal menggunakan interaksi src dan dst list agar aman terisolasi
     script += `add action=accept chain=prerouting comment="${prefix}: Bypass Lokal" src-address-list=private-lokal dst-address-list=private-lokal\n\n`;
     
     script += `# --- TANDAI KONEKSI (Mangle PCC Otomatis Mandiri) ---\n`;
@@ -313,7 +319,6 @@ function generatePCCEngine() {
     if (routingMethod === 'recursive') {
         script += `# --- JALUR RECURSIVE ROUTING VIA TARGET HOST ---\n`;
         
-        // 1. GENERATE RUTE JEMBATAN (BRIDGE / TARGET HOST SPECIFIC)
         activeIsps.forEach(isp => { 
             if (rosVersion === 'v7') {
                 script += `add dst-address=${isp.host}/32 gateway=${isp.gateway} scope=30 target-scope=10 comment="${prefix}: Bridge_Recursive_ISP${isp.id}"\n`; 
@@ -323,7 +328,6 @@ function generatePCCEngine() {
         });
         script += `\n`;
 
-        // 2. GENERATE RUTE KEBIJAKAN (POLICY ROUTES / TABLE MARKING)
         activeIsps.forEach(isp => {
             if (rosVersion === 'v7') {
                 script += `add gateway=${isp.host} routing-table=${isp.routeName} check-gateway=ping scope=30 target-scope=30 comment="${prefix}: Policy_Route_v7_${isp.id}"\n`;
@@ -333,7 +337,6 @@ function generatePCCEngine() {
         });
         script += `\n`;
         
-        // 3. GENERATE RUTE UTAMA & BACKUP (MAIN FAILOVER)
         activeIsps.forEach((isp, index) => {
             if (rosVersion === 'v7') {
                 script += `add gateway=${isp.host} check-gateway=ping scope=30 target-scope=30 distance=${index + 1} comment="${prefix}: Main_Failover_v7_${isp.id}"\n`;
