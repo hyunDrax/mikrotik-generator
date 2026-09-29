@@ -20,8 +20,6 @@
                     colors: {
                         darkBg: '#0f172a',
                         cardBg: '#1e293b',
-                        accentBlue: '#38bdf8',
-                        accentGreen: '#22c55e',
                     }
                 }
             }
@@ -29,7 +27,7 @@
     </script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .graph-img { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3)); }
+        .graph-img { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)); min-height: 140px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
@@ -63,21 +61,27 @@
                     <p class="text-xs text-slate-400 flex items-center gap-2">
                         <span id="cloudStatus" class="inline-flex items-center text-emerald-400">
                             <span class="w-2 h-2 bg-emerald-400 rounded-full animate-ping mr-1.5"></span>
-                            Terhubung ke Cloud
+                            Terhubung ke Cloud Multi-User
                         </span>
                     </p>
                 </div>
             </div>
 
             <!-- Header Actions -->
-            <div class="flex items-center space-x-3">
-                <button onclick="openAddModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold px-4 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+            <div class="flex items-center space-x-2">
+                <button onclick="openAddModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition">
                     <i class="fa-solid fa-plus"></i> Tambah Router
+                </button>
+                <button onclick="openChangePinModal()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 transition" title="Ganti PIN Access">
+                    <i class="fa-solid fa-key"></i> Ganti PIN
+                </button>
+                <button onclick="forceResetCloudData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-2 rounded-lg text-sm transition" title="Reset Data IP Publik Default">
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset IP Cloud
                 </button>
                 <button onclick="refreshGraphs()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-2 rounded-lg text-sm transition" title="Refresh Grafik">
                     <i class="fa-solid fa-rotate"></i>
                 </button>
-                <button onclick="logout()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-2 rounded-lg text-sm transition" title="Keluar">
+                <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 p-2 rounded-lg text-sm transition" title="Keluar">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
@@ -110,16 +114,40 @@
                     <input type="text" id="routerName" required placeholder="Contoh: RLZ, RMP, SERAYA" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">IP & Port Router</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">IP & Port Router (Publik)</label>
                     <input type="text" id="routerHost" required placeholder="Contoh: 116.90.181.18:891" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Interface</label>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Interface Mikrotik</label>
                     <input type="text" id="routerInterface" required placeholder="Contoh: ether1, ether1-WAN, bridge1" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div class="flex justify-end space-x-3 pt-2">
                     <button type="button" onclick="closeRouterModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-semibold">Batal</button>
                     <button type="submit" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-slate-950 rounded-lg text-sm font-bold">Simpan Router</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Ganti PIN -->
+    <div id="pinModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 max-w-sm w-full">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Ganti PIN Akses Cloud</h3>
+                <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form onsubmit="updateCloudPin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">PIN Lama</label>
+                    <input type="password" id="oldPinInput" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">PIN Baru</label>
+                    <input type="password" id="newPinInput" required class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-semibold">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-sm font-bold">Update PIN</button>
                 </div>
             </form>
         </div>
@@ -141,18 +169,30 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const DEFAULT_PIN = "1234";
+        let currentActivePin = "1234";
         let routersList = [];
 
         window.addEventListener('DOMContentLoaded', () => {
+            fetchCloudSettings();
             if (sessionStorage.getItem('authenticated') === 'true') {
                 showDashboard();
             }
         });
 
+        // Sync Settings / PIN dari Cloud
+        function fetchCloudSettings() {
+            db.collection('settings').doc('access').onSnapshot((doc) => {
+                if (doc.exists && doc.data().pin) {
+                    currentActivePin = doc.data().pin;
+                } else {
+                    db.collection('settings').doc('access').set({ pin: "1234" });
+                }
+            });
+        }
+
         function verifyPin() {
             const input = document.getElementById('pinInput').value;
-            if (input === DEFAULT_PIN) {
+            if (input === currentActivePin) {
                 sessionStorage.setItem('authenticated', 'true');
                 showDashboard();
             } else {
@@ -178,8 +218,7 @@
                     routersList.push({ id: doc.id, ...doc.data() });
                 });
 
-                // Auto Seed jika data Firebase belum ada / baru direset
-                if (routersList.length === 0 && !localStorage.getItem('default_seeded_v2')) {
+                if (routersList.length === 0) {
                     seedDefaultRouters();
                     return;
                 }
@@ -187,13 +226,11 @@
                 renderRouters();
             }, (error) => {
                 console.error("Firebase Error:", error);
-                document.getElementById('cloudStatus').innerHTML = `<span class="text-amber-400"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Mode Lokal/Offline</span>`;
             });
         }
 
-        // PERBAIKAN: Memasukkan IP publik RLZ, RMP, dan SERAYA secara default
+        // PERBAIKAN UTAMA: Pemasangan IP Publik Resmi Default
         function seedDefaultRouters() {
-            localStorage.setItem('default_seeded_v2', 'true');
             const defaults = [
                 { name: "RLZ", host: "116.90.181.18:891", interfaceName: "ether1" },
                 { name: "RMP", host: "116.90.181.58:891", interfaceName: "ether1" },
@@ -202,14 +239,23 @@
             defaults.forEach(r => db.collection('routers').add(r));
         }
 
+        // Paksa Reset Data Cloud jika ada IP lokal tersisa
+        async function forceResetCloudData() {
+            if (confirm("Reset ulang semua daftar router di cloud ke IP Publik Default (RLZ, RMP, SERAYA)?")) {
+                const snapshot = await db.collection('routers').get();
+                const batch = db.batch();
+                snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+                await batch.commit();
+                seedDefaultRouters();
+            }
+        }
+
         function renderRouters() {
             const grid = document.getElementById('routerGrid');
             grid.innerHTML = '';
 
             routersList.forEach((router) => {
                 const timestamp = new Date().getTime();
-                
-                // Pembersih URL: Hapus 'http://', 'https://', atau path '/graphs/' jika terlanjur diketik
                 let cleanHost = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
                 
                 const dailyGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
@@ -218,7 +264,6 @@
                 const cardHtml = `
                     <div class="bg-slate-800 rounded-2xl border border-slate-700/80 p-5 flex flex-col justify-between shadow-lg hover:border-sky-500/40 transition duration-300">
                         <div>
-                            <!-- Card Header -->
                             <div class="flex justify-between items-center mb-3">
                                 <div>
                                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
@@ -236,16 +281,23 @@
                                 </div>
                             </div>
 
-                            <!-- Native Mikrotik Graph Image -->
-                            <div class="bg-slate-900/80 rounded-xl p-2 border border-slate-700/50 my-3 flex items-center justify-center min-h-[140px] overflow-hidden">
+                            <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/50 my-3 flex items-center justify-center min-h-[140px] overflow-hidden relative">
                                 <img src="${dailyGraphUrl}" 
                                      alt="Graph ${router.name}" 
                                      class="graph-img max-w-full h-auto rounded"
-                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/419x168/0f172a/38bdf8?text=Gagal+Muat+(Cek+Interface/IP)';" />
+                                     onerror="this.onerror=null; this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');" />
+                                
+                                <div class="hidden text-center p-3">
+                                    <i class="fa-solid fa-image-slash text-amber-400 text-2xl mb-2"></i>
+                                    <p class="text-xs text-slate-300 font-semibold">Grafik Tidak Dapat Dimuat</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">Pastikan nama interface <b>${router.interfaceName}</b> aktif di MikroTik Graphing.</p>
+                                    <a href="http://${cleanHost}/graphs/" target="_blank" class="mt-2 inline-block text-[11px] bg-slate-800 hover:bg-slate-700 text-sky-400 px-3 py-1 rounded border border-slate-700">
+                                        Tes Buka Langsung <i class="fa-solid fa-external-link"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Card Footer Links -->
                         <div class="pt-2 flex justify-between items-center border-t border-slate-700/50 mt-2">
                             <a href="${webfigUrl}" target="_blank" class="text-xs bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka WebFig
@@ -260,6 +312,7 @@
             });
         }
 
+        // CRUD Router
         function openAddModal() {
             document.getElementById('modalTitle').innerText = 'Tambah Router Baru';
             document.getElementById('routerId').value = '';
@@ -273,8 +326,6 @@
             document.getElementById('modalTitle').innerText = 'Edit Router';
             document.getElementById('routerId').value = router.id;
             document.getElementById('routerName').value = router.name;
-            
-            // Bersihkan teks IP saat diedit agar rapi
             document.getElementById('routerHost').value = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
             document.getElementById('routerInterface').value = router.interfaceName;
             document.getElementById('routerModal').classList.remove('hidden');
@@ -287,10 +338,7 @@
         function saveRouter(e) {
             e.preventDefault();
             const id = document.getElementById('routerId').value;
-            let rawHost = document.getElementById('routerHost').value.trim();
-            
-            // Otomatis bersihkan format jika ada http:// atau /graphs/ saat di-input
-            let cleanHost = rawHost.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+            let cleanHost = document.getElementById('routerHost').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
 
             const data = {
                 name: document.getElementById('routerName').value.trim(),
@@ -307,9 +355,34 @@
         }
 
         function deleteRouter(id) {
-            if (confirm('Yakin ingin menghapus router ini dari cloud dashboard?')) {
+            if (confirm('Yakin ingin menghapus router ini dari cloud?')) {
                 db.collection('routers').doc(id).delete();
             }
+        }
+
+        // Manajemen PIN Cloud
+        function openChangePinModal() {
+            document.getElementById('pinModal').classList.remove('hidden');
+        }
+
+        function closeChangePinModal() {
+            document.getElementById('pinModal').classList.add('hidden');
+        }
+
+        function updateCloudPin(e) {
+            e.preventDefault();
+            const oldPin = document.getElementById('oldPinInput').value;
+            const newPin = document.getElementById('newPinInput').value;
+
+            if (oldPin !== currentActivePin) {
+                alert("PIN Lama Salah!");
+                return;
+            }
+
+            db.collection('settings').doc('access').set({ pin: newPin }).then(() => {
+                alert("PIN Akses Cloud Berhasil Diperbarui!");
+                closeChangePinModal();
+            });
         }
 
         function refreshGraphs() {
