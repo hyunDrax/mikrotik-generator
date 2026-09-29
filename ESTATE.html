@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Monitoring Mikrotik Multi-Router ESTATE</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b',
+                        bordercolor: '#334155',
+                        brandaccent: '#38bdf8'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for Card Body */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="bg-darkbg text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <div id="auth-overlay" class="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[9999] flex justify-center items-center p-4">
+        <div class="bg-cardbg border border-bordercolor p-6 sm:p-8 rounded-2xl shadow-2xl w-full max-w-md text-center">
+            <div class="w-16 h-16 bg-sky-500/10 border border-sky-500/30 text-sky-400 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h2 class="text-xl font-bold text-slate-100 mb-1">Akses Terproteksi</h2>
+            <p class="text-xs text-slate-400 mb-6">Masukkan PIN Keamanan untuk mengakses Dashboard Monitoring ESTATE</p>
+            
+            <div class="space-y-4">
+                <input type="password" id="passcode-input" placeholder="Masukkan PIN (Default: 1234)" 
+                    class="w-full px-4 py-3 bg-slate-900 border border-bordercolor rounded-xl text-center text-lg tracking-widest text-white placeholder:text-slate-500 placeholder:tracking-normal focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500">
+                
+                <button onclick="checkAuth()" 
+                    class="w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-semibold rounded-xl transition duration-200 shadow-lg shadow-sky-600/20 active:scale-[0.98]">
+                    Masuk Ke Dashboard
+                </button>
+            </div>
+            <p id="auth-error" class="text-rose-400 text-xs mt-3 hidden flex items-center justify-center gap-1">
+                <i class="fa-solid fa-circle-exclamation"></i> PIN Salah! Silakan coba lagi.
+            </p>
+        </div>
+    </div>
+
+    <header class="border-b border-bordercolor bg-cardbg/80 backdrop-blur sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3 text-center sm:text-left">
+                <div class="w-10 h-10 bg-sky-500/10 border border-sky-500/30 text-sky-400 rounded-xl flex items-center justify-center text-xl shrink-0">
+                    <i class="fa-solid fa-network-wired"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold text-sky-400 tracking-wide">Dashboard Monitoring ESTATE</h1>
+                    <p class="text-xs text-slate-400">Monitoring Traffic Bandwidth Multi-Router Real-Time</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <span id="sync-status" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                    Menghubungkan Database...
+                </span>
+                <button onclick="openModal()" 
+                    class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold rounded-xl transition duration-200 shadow-lg shadow-emerald-600/20 flex items-center gap-2 active:scale-95">
+                    <i class="fa-solid fa-plus"></i> Tambah Router
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div id="router-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Cards dirender via Firestore Realtime listener -->
+            <div class="col-span-full text-center py-16 text-slate-500">
+                <i class="fa-solid fa-spinner fa-spin text-3xl mb-3 text-sky-400"></i>
+                <p class="text-sm">Memuat data router dari database...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-bordercolor py-4 text-center text-xs text-slate-500 bg-cardbg/30">
+        <p>&copy; 2026 Dashboard Monitoring ESTATE Mikrotik. Synchronized with Cloud Storage.</p>
+    </footer>
+
+    <div id="router-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden justify-center items-center p-4">
+        <div class="bg-cardbg border border-bordercolor rounded-2xl p-6 w-full max-w-md shadow-2xl relative">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-lg">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+            <h3 id="modal-title" class="text-lg font-bold text-sky-400 mb-4 flex items-center gap-2">
+                <i class="fa-solid fa-server"></i> Tambah Router ESTATE
+            </h3>
+
+            <form id="router-form" onsubmit="handleSaveRouter(event)" class="space-y-4">
+                <input type="hidden" id="router-doc-id" value="">
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Nama ESTATE</label>
+                    <input type="text" id="input-name" required placeholder="Contoh: KAMPAR" 
+                        class="w-full px-3 py-2 bg-slate-900 border border-bordercolor rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">IP Address & Port WWW</label>
+                    <input type="text" id="input-ip" required placeholder="Contoh: 116.90.181.18:891" 
+                        class="w-full px-3 py-2 bg-slate-900 border border-bordercolor rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">Interface Monitoring</label>
+                    <input type="text" id="input-iface" required value="ether1" placeholder="Contoh: ether1" 
+                        class="w-full px-3 py-2 bg-slate-900 border border-bordercolor rounded-lg text-sm text-white focus:outline-none focus:border-sky-500">
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeModal()" 
+                        class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg">
+                        Batal
+                    </button>
+                    <button type="submit" id="btn-save" 
+                        class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold rounded-lg transition">
+                        Simpan Router
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, onSnapshot, setDoc, addDoc, updateDoc, deleteDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Global Variables
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'mikrotik-dashboard-estate';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            apiKey: "AIzaSyDemoKeyOnlyForPreviewMode123456",
+            authDomain: "demo-app.firebaseapp.com",
+            projectId: "demo-app",
+            storageBucket: "demo-app.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // State & DOM Elements
+        const SECRET_PIN = "1234";
+        let currentUser = null;
+        let isInitialSeeded = false;
+
+        // Path Koleksi Firestore
+        const PUBLIC_COLLECTION_PATH = ['artifacts', appId, 'public', 'data', 'routers'];
+
+        // Initial Seed Routers Default
+        const DEFAULT_ROUTERS = [
+            { name: "ESTATE RLZ", ip: "116.90.181.18:891", iface: "ether1", createdAt: Date.now() },
+            { name: "ESTATE RMP", ip: "116.90.181.58:891", iface: "ether1", createdAt: Date.now() + 1 },
+            { name: "ESTATE SERAYA", ip: "116.90.181.61:891", iface: "ether1", createdAt: Date.now() + 2 }
+        ];
+
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const userCredential = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = userCredential.user;
+                } else {
+                    const userCredential = await signInAnonymously(auth);
+                    currentUser = userCredential.user;
+                }
+                
+                updateSyncStatus(true, "Terhubung & Tersinkron");
+                subscribeRealtimeRouters();
+            } catch (err) {
+                console.error("Auth Error:", err);
+                updateSyncStatus(false, "Gagal Menghubungkan Cloud");
+            }
+        }
+
+        function updateSyncStatus(isOnline, message) {
+            const el = document.getElementById("sync-status");
+            if (!el) return;
+            if (isOnline) {
+                el.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> ${message}`;
+            } else {
+                el.className = "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20";
+                el.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-400"></span> ${message}`;
+            }
+        }
+
+        function subscribeRealtimeRouters() {
+            if (!currentUser) return;
+
+            const routersColRef = collection(db, ...PUBLIC_COLLECTION_PATH);
+
+            onSnapshot(routersColRef, async (snapshot) => {
+                let routerList = [];
+                snapshot.forEach((docSnap) => {
+                    routerList.push({ id: docSnap.id, ...docSnap.data() });
+                });
+
+                // Sort by createdAt ascending
+                routerList.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+
+                // Auto Seed jika database masih kosong
+                if (routerList.length === 0 && !isInitialSeeded) {
+                    isInitialSeeded = true;
+                    await seedDefaultRouters();
+                    return;
+                }
+
+                renderRouterGrid(routerList);
+            }, (error) => {
+                console.error("Firestore Listen Error:", error);
+                updateSyncStatus(false, "Koneksi Error");
+            });
+        }
+
+        async function seedDefaultRouters() {
+            try {
+                const routersColRef = collection(db, ...PUBLIC_COLLECTION_PATH);
+                for (const r of DEFAULT_ROUTERS) {
+                    await addDoc(routersColRef, r);
+                }
+            } catch (e) {
+                console.error("Error seeding default routers:", e);
+            }
+        }
+
+        function renderRouterGrid(routers) {
+            const grid = document.getElementById("router-grid");
+            if (!grid) return;
+
+            if (routers.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-cardbg border border-bordercolor rounded-2xl">
+                        <i class="fa-solid fa-server text-4xl text-slate-600 mb-3"></i>
+                        <p class="text-slate-400 text-sm font-semibold">Belum ada Router yang terdaftar.</p>
+                        <p class="text-xs text-slate-500 mt-1">Klik tombol "+ Tambah Router" untuk menambahkan router baru.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const timestamp = new Date().getTime(); // Prevent image caching for live updates
+
+            grid.innerHTML = routers.map((r) => {
+                const ipAddress = r.ip.trim();
+                const iface = (r.iface || 'ether1').trim();
+                const displayName = r.name.startsWith("ESTATE") ? r.name : `ESTATE ${r.name}`;
+
+                return `
+                    <div class="bg-cardbg border border-bordercolor rounded-2xl overflow-hidden shadow-xl flex flex-col hover:border-slate-600 transition">
+                        <!-- Card Header -->
+                        <div class="bg-slate-800/80 px-4 py-3 border-b border-bordercolor flex justify-between items-center">
+                            <div class="flex items-center gap-2">
+                                <i class="fa-solid fa-microchip text-sky-400 text-sm"></i>
+                                <span class="font-bold text-slate-100 text-sm">${escapeHtml(displayName)}</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                    LIVE
+                                </span>
+                                <button onclick="window.editRouterModal('${r.id}', '${escapeHtml(r.name)}', '${escapeHtml(r.ip)}', '${escapeHtml(r.iface)}')" 
+                                    class="text-slate-400 hover:text-sky-400 text-xs p-1" title="Edit Router">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button onclick="window.deleteRouter('${r.id}', '${escapeHtml(displayName)}')" 
+                                    class="text-slate-400 hover:text-rose-400 text-xs p-1" title="Hapus Router">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Card Body (Graphs Image) -->
+                        <div class="p-4 bg-white flex-1 flex flex-col items-center justify-start overflow-y-auto max-h-[500px] custom-scrollbar space-y-4">
+                            <div class="w-full text-center">
+                                <p class="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">
+                                    <i class="fa-solid fa-chart-line text-sky-600"></i> Daily Graph (5 Min Avg)
+                                </p>
+                                <img class="w-full max-w-[380px] h-auto mx-auto border border-slate-300 rounded bg-white shadow-sm" 
+                                    src="http://${ipAddress}/graphs/iface/${iface}/daily.gif?t=${timestamp}" 
+                                    alt="Daily Graph ${escapeHtml(displayName)}"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/380x180/f1f5f9/64748b?text=Grafik+Tidak+Dapat+Dimuat';" />
+                            </div>
+
+                            <div class="w-full text-center">
+                                <p class="text-[10px] font-extrabold text-slate-600 uppercase tracking-wider mb-1">
+                                    <i class="fa-solid fa-chart-area text-emerald-600"></i> Weekly Graph (30 Min Avg)
+                                </p>
+                                <img class="w-full max-w-[380px] h-auto mx-auto border border-slate-300 rounded bg-white shadow-sm" 
+                                    src="http://${ipAddress}/graphs/iface/${iface}/weekly.gif?t=${timestamp}" 
+                                    alt="Weekly Graph ${escapeHtml(displayName)}"
+                                    onerror="this.onerror=null; this.src='https://placehold.co/380x180/f1f5f9/64748b?text=Grafik+Tidak+Dapat+Dimuat';" />
+                            </div>
+                        </div>
+
+                        <!-- Card Footer -->
+                        <div class="bg-slate-900/90 px-4 py-3 border-t border-bordercolor flex justify-between items-center text-xs text-slate-400">
+                            <span class="font-mono text-[11px] truncate max-w-[180px]">IP: ${escapeHtml(ipAddress)}</span>
+                            <a href="http://${ipAddress}/webfig/#IP:Hotspot.Active" target="_blank" rel="noopener noreferrer"
+                                class="text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1 transition">
+                                Cek User Online <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Helper Escape HTML
+        function escapeHtml(str) {
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        setInterval(() => {
+            const grid = document.getElementById("router-grid");
+            if (grid && grid.children.length > 0) {
+                // Trigger re-render with new timestamp cache buster
+                const imgs = grid.querySelectorAll("img");
+                const timestamp = new Date().getTime();
+                imgs.forEach(img => {
+                    if (img.src && !img.src.includes('placehold.co')) {
+                        const baseUrl = img.src.split('?')[0];
+                        img.src = `${baseUrl}?t=${timestamp}`;
+                    }
+                });
+            }
+        }, 60000);
+
+        window.checkAuth = function() {
+            const input = document.getElementById("passcode-input").value;
+            const err = document.getElementById("auth-error");
+            if (input === SECRET_PIN) {
+                document.getElementById("auth-overlay").classList.add("hidden");
+            } else {
+                err.classList.remove("hidden");
+            }
+        };
+
+        // Keypress enter for Auth PIN
+        document.getElementById("passcode-input")?.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") window.checkAuth();
+        });
+
+        window.openModal = function() {
+            document.getElementById("router-doc-id").value = "";
+            document.getElementById("modal-title").innerHTML = `<i class="fa-solid fa-server"></i> Tambah Router ESTATE`;
+            document.getElementById("router-form").reset();
+            document.getElementById("input-iface").value = "ether1";
+            document.getElementById("router-modal").classList.remove("hidden");
+            document.getElementById("router-modal").classList.add("flex");
+        };
+
+        window.closeModal = function() {
+            document.getElementById("router-modal").classList.add("hidden");
+            document.getElementById("router-modal").classList.remove("flex");
+        };
+
+        window.editRouterModal = function(id, name, ip, iface) {
+            document.getElementById("router-doc-id").value = id;
+            document.getElementById("modal-title").innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Edit Router ESTATE`;
+            document.getElementById("input-name").value = name;
+            document.getElementById("input-ip").value = ip;
+            document.getElementById("input-iface").value = iface || "ether1";
+            
+            document.getElementById("router-modal").classList.remove("hidden");
+            document.getElementById("router-modal").classList.add("flex");
+        };
+
+        window.handleSaveRouter = async function(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                alert("Koneksi database belum siap. Silakan tunggu sebentar.");
+                return;
+            }
+
+            const docId = document.getElementById("router-doc-id").value;
+            const name = document.getElementById("input-name").value.trim();
+            const ip = document.getElementById("input-ip").value.trim();
+            const iface = document.getElementById("input-iface").value.trim() || "ether1";
+
+            const btnSave = document.getElementById("btn-save");
+            btnSave.disabled = true;
+            btnSave.innerText = "Saving...";
+
+            try {
+                if (docId) {
+                    // Update
+                    const docRef = doc(db, ...PUBLIC_COLLECTION_PATH, docId);
+                    await updateDoc(docRef, {
+                        name: name,
+                        ip: ip,
+                        iface: iface
+                    });
+                } else {
+                    // Create
+                    const colRef = collection(db, ...PUBLIC_COLLECTION_PATH);
+                    await addDoc(colRef, {
+                        name: name,
+                        ip: ip,
+                        iface: iface,
+                        createdAt: Date.now()
+                    });
+                }
+                window.closeModal();
+            } catch (err) {
+                console.error("Save Router Error:", err);
+                alert("Gagal menyimpan data router: " + err.message);
+            } finally {
+                btnSave.disabled = false;
+                btnSave.innerText = "Simpan Router";
+            }
+        };
+
+        window.deleteRouter = async function(docId, displayName) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus ${displayName}?`)) return;
+
+            try {
+                const docRef = doc(db, ...PUBLIC_COLLECTION_PATH, docId);
+                await deleteDoc(docRef);
+            } catch (err) {
+                console.error("Delete Router Error:", err);
+                alert("Gagal menghapus router: " + err.message);
+            }
+        };
+
+        // Initialize Firebase Authentication & Data Stream
+        initAuth();
+    </script>
+</body>
+</html>
