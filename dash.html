@@ -83,14 +83,16 @@
 
             <!-- Header Actions -->
             <div class="flex items-center space-x-2">
-                <button onclick="openAddModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition">
+                <!-- Tombol Tambah Router (Hanya Tampil untuk Admin) -->
+                <button id="addRouterBtn" onclick="openAddModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition hidden">
                     <i class="fa-solid fa-plus"></i> Tambah Router
                 </button>
                 <button onclick="openChangePasswordModal()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 transition" title="Ganti Password Akun Ini">
                     <i class="fa-solid fa-key"></i> Ganti Password
                 </button>
-                <button onclick="forceResetCloudData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-2 rounded-lg text-sm transition" title="Reset IP Cloud ke Publik">
-                    <i class="fa-solid fa-arrows-rotate"></i> Reset IP Cloud
+                <!-- Tombol Reset (Hanya Tampil untuk Admin) -->
+                <button id="resetCloudBtn" onclick="forceResetCloudData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-2 rounded-lg text-sm transition hidden" title="Reset IP Cloud ke Publik (Admin Only)">
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset IP
                 </button>
                 <button onclick="refreshGraphs()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-2 rounded-lg text-sm transition" title="Refresh Grafik">
                     <i class="fa-solid fa-rotate"></i>
@@ -114,7 +116,7 @@
         </footer>
     </div>
 
-    <!-- Modal Tambah/Edit Router -->
+    <!-- Modal Tambah/Edit Router (Admin Only) -->
     <div id="routerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
         <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 max-w-md w-full">
             <div class="flex justify-between items-center mb-4">
@@ -180,17 +182,40 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // DAFTAR EMAIL ADMIN (Punya Akses Tambah, Edit, dan Hapus)
+        const ADMIN_EMAILS = [
+            "voice.pekanbaru@gmail.com"
+        ];
+
         let isRegisterMode = false;
         let routersList = [];
+        let currentUserEmail = "";
 
         // Auth Listener Multi-User
         auth.onAuthStateChanged((user) => {
             if (user) {
+                currentUserEmail = user.email.toLowerCase();
                 document.getElementById('authModal').classList.add('hidden');
                 document.getElementById('mainDashboard').classList.remove('hidden');
-                document.getElementById('userDisplay').innerHTML = `<i class="fa-solid fa-user-circle mr-1"></i> ${user.email}`;
+                
+                const isAdmin = ADMIN_EMAILS.includes(currentUserEmail);
+                document.getElementById('userDisplay').innerHTML = `
+                    <i class="fa-solid fa-user-circle mr-1"></i> ${user.email} 
+                    ${isAdmin ? '<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 rounded font-bold">ADMIN</span>' : '<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-slate-700 text-slate-300 rounded font-semibold">VIEW ONLY</span>'}
+                `;
+
+                // Tampilkan/Sembunyikan tombol Tambah & Reset khusus Admin
+                if (isAdmin) {
+                    document.getElementById('addRouterBtn').classList.remove('hidden');
+                    document.getElementById('resetCloudBtn').classList.remove('hidden');
+                } else {
+                    document.getElementById('addRouterBtn').classList.add('hidden');
+                    document.getElementById('resetCloudBtn').classList.add('hidden');
+                }
+
                 listenToFirebase();
             } else {
+                currentUserEmail = "";
                 document.getElementById('authModal').classList.remove('hidden');
                 document.getElementById('mainDashboard').classList.add('hidden');
             }
@@ -234,7 +259,7 @@
                     routersList.push({ id: doc.id, ...doc.data() });
                 });
 
-                if (routersList.length === 0) {
+                if (routersList.length === 0 && ADMIN_EMAILS.includes(currentUserEmail)) {
                     seedDefaultRouters();
                     return;
                 }
@@ -243,7 +268,6 @@
             });
         }
 
-        // Pemasangan IP Publik Resmi Default
         function seedDefaultRouters() {
             const defaults = [
                 { name: "RLZ", host: "116.90.181.18:891", interfaceName: "ether1" },
@@ -253,8 +277,12 @@
             defaults.forEach(r => db.collection('routers').add(r));
         }
 
-        // Paksa Reset Data Cloud untuk membersihkan IP Lokal lama
         async function forceResetCloudData() {
+            if (!ADMIN_EMAILS.includes(currentUserEmail)) {
+                alert("Akses Ditolak! Hanya Admin yang diizinkan mereset data cloud.");
+                return;
+            }
+
             if (confirm("Reset ulang semua daftar router di cloud ke IP Publik Default (RLZ, RMP, SERAYA)?")) {
                 const snapshot = await db.collection('routers').get();
                 const batch = db.batch();
@@ -268,18 +296,29 @@
             const grid = document.getElementById('routerGrid');
             grid.innerHTML = '';
 
+            const isAdmin = ADMIN_EMAILS.includes(currentUserEmail);
+
             routersList.forEach((router) => {
                 const timestamp = new Date().getTime();
                 let cleanHost = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
                 
-                // URL Asli MikroTik HTTP
                 const rawGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
-                
-                // Proxy Gambar HTTPS (Melompati Mixed Content / Browser CORS Blocking)
                 const proxyGraphUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawGraphUrl)}&n=-1`;
 
-                const webfigUrl = `http://${cleanHost}/webfig/`;
+                const activeUserWebfigUrl = `http://${cleanHost}/webfig/#IP:Hotspot.Active`;
                 const fullGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/`;
+
+                // Tombol Edit dan Hapus HANYA dirender jika pengguna adalah ADMIN
+                const adminActionButtons = isAdmin ? `
+                    <div class="flex space-x-1">
+                        <button onclick="openEditModal('${router.id}')" class="text-slate-400 hover:text-sky-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Edit Router">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                        <button onclick="deleteRouter('${router.id}')" class="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Hapus Router">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                ` : '';
 
                 const cardHtml = `
                     <div class="bg-slate-800 rounded-2xl border border-slate-700/80 p-5 flex flex-col justify-between shadow-lg hover:border-sky-500/40 transition duration-300">
@@ -291,17 +330,10 @@
                                     </h3>
                                     <p class="text-xs text-slate-400 font-mono mt-0.5">${cleanHost} (${router.interfaceName})</p>
                                 </div>
-                                <div class="flex space-x-1">
-                                    <button onclick="openEditModal('${router.id}')" class="text-slate-400 hover:text-sky-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Edit">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <button onclick="deleteRouter('${router.id}')" class="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Hapus">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </div>
+                                ${adminActionButtons}
                             </div>
 
-                            <!-- Area Rendering Grafik via HTTPS Proxy -->
+                            <!-- Area Rendering Grafik -->
                             <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/50 my-3 flex items-center justify-center min-h-[140px] overflow-hidden relative">
                                 <img src="${proxyGraphUrl}" 
                                      alt="Graph ${router.name}" 
@@ -320,8 +352,9 @@
                         </div>
 
                         <div class="pt-2 flex justify-between items-center border-t border-slate-700/50 mt-2">
-                            <a href="${webfigUrl}" target="_blank" class="text-xs bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka WebFig
+                            <!-- Tombol Active Users tetap bisa diakses semua user -->
+                            <a href="${activeUserWebfigUrl}" target="_blank" class="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                                <i class="fa-solid fa-users text-xs"></i> Active Users
                             </a>
                             <a href="${fullGraphUrl}" target="_blank" class="text-xs text-slate-400 hover:text-slate-200 transition">
                                 Detail Graph <i class="fa-solid fa-chevron-right text-[10px]"></i>
@@ -335,6 +368,10 @@
 
         // CRUD Router
         function openAddModal() {
+            if (!ADMIN_EMAILS.includes(currentUserEmail)) {
+                alert("Akses Ditolak! Anda hanya memiliki hak akses View Only.");
+                return;
+            }
             document.getElementById('modalTitle').innerText = 'Tambah Router Baru';
             document.getElementById('routerId').value = '';
             document.getElementById('routerForm').reset();
@@ -342,6 +379,10 @@
         }
 
         function openEditModal(id) {
+            if (!ADMIN_EMAILS.includes(currentUserEmail)) {
+                alert("Akses Ditolak! Anda hanya memiliki hak akses View Only.");
+                return;
+            }
             const router = routersList.find(r => r.id === id);
             if (!router) return;
             document.getElementById('modalTitle').innerText = 'Edit Router';
@@ -358,6 +399,11 @@
 
         function saveRouter(e) {
             e.preventDefault();
+            if (!ADMIN_EMAILS.includes(currentUserEmail)) {
+                alert("Akses Ditolak! Hanya Admin yang diizinkan menyimpan perubahan.");
+                return;
+            }
+
             const id = document.getElementById('routerId').value;
             let cleanHost = document.getElementById('routerHost').value.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
 
@@ -376,6 +422,11 @@
         }
 
         function deleteRouter(id) {
+            if (!ADMIN_EMAILS.includes(currentUserEmail)) {
+                alert("Akses Ditolak! Hanya Admin yang diizinkan menghapus router.");
+                return;
+            }
+
             if (confirm('Yakin ingin menghapus router ini dari cloud?')) {
                 db.collection('routers').doc(id).delete();
             }
