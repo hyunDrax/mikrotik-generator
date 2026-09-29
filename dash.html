@@ -90,7 +90,7 @@
                     <i class="fa-solid fa-key"></i> Ganti Password
                 </button>
                 <button onclick="forceResetCloudData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-2 rounded-lg text-sm transition" title="Reset IP Cloud ke Publik">
-                    <i class="fa-solid fa-arrows-rotate"></i> Reset IP
+                    <i class="fa-solid fa-arrows-rotate"></i> Reset IP Cloud
                 </button>
                 <button onclick="refreshGraphs()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-2 rounded-lg text-sm transition" title="Refresh Grafik">
                     <i class="fa-solid fa-rotate"></i>
@@ -243,6 +243,7 @@
             });
         }
 
+        // Pemasangan IP Publik Resmi Default
         function seedDefaultRouters() {
             const defaults = [
                 { name: "RLZ", host: "116.90.181.18:891", interfaceName: "ether1" },
@@ -252,6 +253,7 @@
             defaults.forEach(r => db.collection('routers').add(r));
         }
 
+        // Paksa Reset Data Cloud untuk membersihkan IP Lokal lama
         async function forceResetCloudData() {
             if (confirm("Reset ulang semua daftar router di cloud ke IP Publik Default (RLZ, RMP, SERAYA)?")) {
                 const snapshot = await db.collection('routers').get();
@@ -270,7 +272,12 @@
                 const timestamp = new Date().getTime();
                 let cleanHost = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
                 
-                const dailyGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
+                // URL Asli MikroTik HTTP
+                const rawGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
+                
+                // Proxy Gambar HTTPS (Melompati Mixed Content / Browser CORS Blocking)
+                const proxyGraphUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawGraphUrl)}&n=-1`;
+
                 const webfigUrl = `http://${cleanHost}/webfig/`;
                 const fullGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/`;
 
@@ -294,19 +301,19 @@
                                 </div>
                             </div>
 
-                            <!-- Area Grafik dengan Dual Fallback -->
+                            <!-- Area Rendering Grafik via HTTPS Proxy -->
                             <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/50 my-3 flex items-center justify-center min-h-[140px] overflow-hidden relative">
-                                <img src="${dailyGraphUrl}" 
+                                <img src="${proxyGraphUrl}" 
                                      alt="Graph ${router.name}" 
                                      class="graph-img max-w-full h-auto rounded"
-                                     onerror="this.onerror=null; this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden');" />
+                                     onerror="this.onerror=null; this.src='${rawGraphUrl}'; this.onerror=function(){ this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden'); };" />
                                 
                                 <div class="hidden text-center p-3">
-                                    <i class="fa-solid fa-network-wired text-sky-400 text-2xl mb-2"></i>
-                                    <p class="text-xs text-slate-300 font-semibold">Buka Grafik Langsung</p>
-                                    <p class="text-[10px] text-slate-400 mt-1 mb-2">Browser memblokir gambar HTTP/CORS publik di layar ini.</p>
+                                    <i class="fa-solid fa-chart-area text-sky-400 text-2xl mb-2"></i>
+                                    <p class="text-xs text-slate-300 font-semibold">Cek Interface / Koneksi MikroTik</p>
+                                    <p class="text-[10px] text-slate-400 mt-1 mb-2">Interface <b>${router.interfaceName}</b> mungkin tidak aktif di Graphing.</p>
                                     <a href="${fullGraphUrl}" target="_blank" class="inline-block text-xs bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition">
-                                        <i class="fa-solid fa-chart-line mr-1"></i> Tampilkan Grafik (${router.interfaceName})
+                                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Grafik Langsung
                                     </a>
                                 </div>
                             </div>
