@@ -86,7 +86,7 @@
         <!-- Router Cards Grid -->
         <main class="p-6 flex-1">
             <div id="routerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Card Routers akan dirender secara dinamis melalui JavaScript -->
+                <!-- Card Routers dirender secara dinamis -->
             </div>
         </main>
 
@@ -110,8 +110,8 @@
                     <input type="text" id="routerName" required placeholder="Contoh: RLZ, RMP, SERAYA" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-400 mb-1">IP / Hostname Router (Publik/VPN)</label>
-                    <input type="text" id="routerHost" required placeholder="Contoh: 192.168.88.1 atau id-1.host.net:8080" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">IP & Port Router</label>
+                    <input type="text" id="routerHost" required placeholder="Contoh: 116.90.181.18:891" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Interface</label>
@@ -127,7 +127,7 @@
 
     <!-- JavaScript Logic -->
     <script>
-        // 1. KONFIGURASI FIREBASE CLOUD (LENGKAP SAMA PROJECT ANDA)
+        // 1. KONFIGURASI FIREBASE CLOUD
         const firebaseConfig = {
             apiKey: "AIzaSyA4ZyFYenVo6JS3ER7juoe_weUk4JGS_u4",
             authDomain: "dashboard-mikrotik-464bf.firebaseapp.com",
@@ -138,22 +138,18 @@
             measurementId: "G-83TZKF3RXS"
         };
 
-        // Inisialisasi Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        // Security PIN (Default PIN: 1234)
         const DEFAULT_PIN = "1234";
         let routersList = [];
 
-        // Inisialisasi Saat Halaman Dimuat
         window.addEventListener('DOMContentLoaded', () => {
             if (sessionStorage.getItem('authenticated') === 'true') {
                 showDashboard();
             }
         });
 
-        // Verifikasi PIN
         function verifyPin() {
             const input = document.getElementById('pinInput').value;
             if (input === DEFAULT_PIN) {
@@ -175,7 +171,6 @@
             listenToFirebase();
         }
 
-        // Synchronize Firestore Database secara Realtime
         function listenToFirebase() {
             db.collection('routers').onSnapshot((snapshot) => {
                 routersList = [];
@@ -183,8 +178,8 @@
                     routersList.push({ id: doc.id, ...doc.data() });
                 });
 
-                // Jika database masih kosong pertama kali, isi data default (RLZ, RMP, SERAYA)
-                if (routersList.length === 0 && !localStorage.getItem('default_seeded')) {
+                // Auto Seed jika data Firebase belum ada / baru direset
+                if (routersList.length === 0 && !localStorage.getItem('default_seeded_v2')) {
                     seedDefaultRouters();
                     return;
                 }
@@ -196,26 +191,29 @@
             });
         }
 
-        // Masukkan Router Default Pertama Kali
+        // PERBAIKAN: Memasukkan IP publik RLZ, RMP, dan SERAYA secara default
         function seedDefaultRouters() {
-            localStorage.setItem('default_seeded', 'true');
+            localStorage.setItem('default_seeded_v2', 'true');
             const defaults = [
-                { name: "RLZ", host: "192.168.88.1", interfaceName: "ether1" },
-                { name: "RMP", host: "192.168.88.2", interfaceName: "ether1" },
-                { name: "SERAYA", host: "192.168.88.3", interfaceName: "ether1" }
+                { name: "RLZ", host: "116.90.181.18:891", interfaceName: "ether1" },
+                { name: "RMP", host: "116.90.181.58:891", interfaceName: "ether1" },
+                { name: "SERAYA", host: "116.90.181.61:891", interfaceName: "ether1" }
             ];
             defaults.forEach(r => db.collection('routers').add(r));
         }
 
-        // Render Kartu-Kartu Router
         function renderRouters() {
             const grid = document.getElementById('routerGrid');
             grid.innerHTML = '';
 
             routersList.forEach((router) => {
                 const timestamp = new Date().getTime();
-                const dailyGraphUrl = `http://${router.host}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
-                const webfigUrl = `http://${router.host}/webfig/`;
+                
+                // Pembersih URL: Hapus 'http://', 'https://', atau path '/graphs/' jika terlanjur diketik
+                let cleanHost = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+                
+                const dailyGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
+                const webfigUrl = `http://${cleanHost}/webfig/`;
 
                 const cardHtml = `
                     <div class="bg-slate-800 rounded-2xl border border-slate-700/80 p-5 flex flex-col justify-between shadow-lg hover:border-sky-500/40 transition duration-300">
@@ -226,7 +224,7 @@
                                     <h3 class="text-xl font-bold text-white flex items-center gap-2">
                                         <i class="fa-solid fa-server text-sky-400 text-base"></i> ${router.name}
                                     </h3>
-                                    <p class="text-xs text-slate-400 font-mono mt-0.5">${router.host} (${router.interfaceName})</p>
+                                    <p class="text-xs text-slate-400 font-mono mt-0.5">${cleanHost} (${router.interfaceName})</p>
                                 </div>
                                 <div class="flex space-x-1">
                                     <button onclick="openEditModal('${router.id}')" class="text-slate-400 hover:text-sky-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Edit">
@@ -243,7 +241,7 @@
                                 <img src="${dailyGraphUrl}" 
                                      alt="Graph ${router.name}" 
                                      class="graph-img max-w-full h-auto rounded"
-                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/419x168/0f172a/38bdf8?text=Grafik+Tidak+Dapat+Muat+(Cek+IP/CORS)';" />
+                                     onerror="this.onerror=null; this.src='https://via.placeholder.com/419x168/0f172a/38bdf8?text=Gagal+Muat+(Cek+Interface/IP)';" />
                             </div>
                         </div>
 
@@ -252,7 +250,7 @@
                             <a href="${webfigUrl}" target="_blank" class="text-xs bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka WebFig
                             </a>
-                            <a href="http://${router.host}/graphs/" target="_blank" class="text-xs text-slate-400 hover:text-slate-200 transition">
+                            <a href="http://${cleanHost}/graphs/" target="_blank" class="text-xs text-slate-400 hover:text-slate-200 transition">
                                 Detail Graph <i class="fa-solid fa-chevron-right text-[10px]"></i>
                             </a>
                         </div>
@@ -262,7 +260,6 @@
             });
         }
 
-        // Modal Handlers
         function openAddModal() {
             document.getElementById('modalTitle').innerText = 'Tambah Router Baru';
             document.getElementById('routerId').value = '';
@@ -276,7 +273,9 @@
             document.getElementById('modalTitle').innerText = 'Edit Router';
             document.getElementById('routerId').value = router.id;
             document.getElementById('routerName').value = router.name;
-            document.getElementById('routerHost').value = router.host;
+            
+            // Bersihkan teks IP saat diedit agar rapi
+            document.getElementById('routerHost').value = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
             document.getElementById('routerInterface').value = router.interfaceName;
             document.getElementById('routerModal').classList.remove('hidden');
         }
@@ -285,13 +284,17 @@
             document.getElementById('routerModal').classList.add('hidden');
         }
 
-        // CRUD Firestore
         function saveRouter(e) {
             e.preventDefault();
             const id = document.getElementById('routerId').value;
+            let rawHost = document.getElementById('routerHost').value.trim();
+            
+            // Otomatis bersihkan format jika ada http:// atau /graphs/ saat di-input
+            let cleanHost = rawHost.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+
             const data = {
                 name: document.getElementById('routerName').value.trim(),
-                host: document.getElementById('routerHost').value.trim(),
+                host: cleanHost,
                 interfaceName: document.getElementById('routerInterface').value.trim()
             };
 
