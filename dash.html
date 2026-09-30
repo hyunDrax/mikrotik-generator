@@ -405,7 +405,8 @@
                 const rawGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
                 const proxyGraphUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawGraphUrl)}&n=-1`;
 
-                const activeUserWebfigUrl = `http://${cleanHost}/webfig/#IP:Hotspot.Active`;
+                #const activeUserWebfigUrl = `http://${cleanHost}/webfig/#IP:Hotspot.Active`;
+                const activeUserWebfigUrl = `http://${cleanHost}/graphs/`;
                 const fullGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/`;
 
                 const adminActionButtons = isAdmin ? `
