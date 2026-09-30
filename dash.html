@@ -99,7 +99,7 @@
 
     <!-- Main Dashboard Container -->
     <div id="mainDashboard" class="hidden flex-1 flex flex-col">
-        <!-- Header -->
+        <!-- Header (Tetap Diam & Tidak Hilang) -->
         <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-40">
             <!-- Brand & Info User -->
             <div class="flex items-center space-x-3">
@@ -158,6 +158,31 @@
         <footer class="bg-slate-900 border-t border-slate-800 px-4 py-3 text-center text-[11px] text-slate-500">
             Estate Dashboard Monitoring &copy; 2026 - PT Panca Duta Utama (PDU)
         </footer>
+    </div>
+
+    <!-- POP-UP VIEW MODAL IFRAME (Menampilkan WebFig / Grafik Tanpa Hilang Bar Header) -->
+    <div id="viewModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col z-50 hidden pt-16 p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl flex flex-col h-full w-full max-w-7xl mx-auto shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="bg-slate-800 px-4 py-2.5 border-b border-slate-700 flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-window-maximize text-sky-400 text-sm"></i>
+                    <h3 id="viewModalTitle" class="text-sm font-bold text-white">Viewer WebFig MikroTik</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <a id="viewExternalLink" href="#" target="_blank" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i> Buka di Tab Baru
+                    </a>
+                    <button onclick="closeViewModal()" class="bg-slate-700 hover:bg-slate-600 text-slate-200 p-1.5 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-xmark text-sm"></i> Tutup
+                    </button>
+                </div>
+            </div>
+            <!-- Modal Body iFrame -->
+            <div class="flex-1 bg-slate-950 relative">
+                <iframe id="viewIframe" src="" class="w-full h-full border-0"></iframe>
+            </div>
+        </div>
     </div>
 
     <!-- Modal Tambah/Edit Router (Admin Only) -->
@@ -355,7 +380,6 @@
                     routersList.push({ id: doc.id, ...doc.data() });
                 });
 
-                // Urutkan berdasarkan kolom 'order' (jika ada)
                 routersList.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
 
                 if (routersList.length === 0 && ADMIN_EMAILS.includes(currentUserEmail)) {
@@ -389,6 +413,19 @@
                 await batch.commit();
                 seedDefaultRouters();
             }
+        }
+
+        // FUNGSI MEMBUKA WEBPAGE MIKROTIK DALAM MODAL (Header Bar Tetap Bertahan)
+        function openInIframe(url, title) {
+            document.getElementById('viewModalTitle').innerText = title;
+            document.getElementById('viewIframe').src = url;
+            document.getElementById('viewExternalLink').href = url;
+            document.getElementById('viewModal').classList.remove('hidden');
+        }
+
+        function closeViewModal() {
+            document.getElementById('viewModal').classList.add('hidden');
+            document.getElementById('viewIframe').src = '';
         }
 
         function renderRouters() {
@@ -444,20 +481,20 @@
                                 <div class="hidden text-center p-2 bg-slate-900 w-full h-full flex flex-col items-center justify-center">
                                     <i class="fa-solid fa-chart-area text-sky-400 text-xl mb-1"></i>
                                     <p class="text-[11px] text-slate-300 font-semibold leading-tight">Cek Interface / Mikrotik</p>
-                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[10px] bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-2 py-1 rounded transition mt-2">
-                                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Grafik
-                                    </a>
+                                    <button onclick="openInIframe('${fullGraphUrl}', 'Grafik ${router.name}')" class="inline-block text-[10px] bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-2 py-1 rounded transition mt-2">
+                                        <i class="fa-solid fa-window-restore mr-1"></i> Buka Grafik
+                                    </button>
                                 </div>
                             </div>
                         </div>
 
                         <div class="pt-2 flex justify-between items-center border-t border-slate-700/50 mt-1">
-                            <a href="${activeUserWebfigUrl}" target="_blank" class="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold px-2 py-1 rounded flex items-center gap-1 transition">
+                            <button onclick="openInIframe('${activeUserWebfigUrl}', 'Active Users - ${router.name}')" class="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold px-2 py-1 rounded flex items-center gap-1 transition">
                                 <i class="fa-solid fa-users text-[9px]"></i> Active Users
-                            </a>
-                            <a href="${fullGraphUrl}" target="_blank" class="text-[10px] text-slate-400 hover:text-slate-200 transition">
+                            </button>
+                            <button onclick="openInIframe('${fullGraphUrl}', 'Detail Grafik - ${router.name}')" class="text-[10px] text-slate-400 hover:text-slate-200 transition">
                                 Detail <i class="fa-solid fa-chevron-right text-[8px]"></i>
-                            </a>
+                            </button>
                         </div>
                     </div>
                 `;
