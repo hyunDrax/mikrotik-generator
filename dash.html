@@ -28,7 +28,13 @@
     </script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .graph-img { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); min-height: 110px; }
+        /* Menggunakan object-contain agar seluruh grafik + teks Max/Avg/Cur MikroTik terlihat utuh */
+        .graph-img { 
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); 
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
@@ -36,15 +42,12 @@
     <!-- Auth Screen Modal (Login / Register Multi-User) -->
     <div id="authModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50">
         <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
-            <!-- Logo PDU Tanpa Background Putih (Transparan & Rapat) -->
+            <!-- Logo PDU Tanpa Background Putih -->
             <div class="flex flex-col items-center justify-center mb-4">
                 <div class="flex flex-col items-center">
                     <svg class="h-12 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Red Left Bracket -->
                         <path d="M 28 8 C 10 8 10 57 28 57 L 16 57 C 2 57 2 8 16 8 Z" fill="#E11D48"/>
-                        <!-- PDU Blue Text (Center Presisi) -->
                         <text x="90" y="49" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="48" fill="#38BDF8" text-anchor="middle" letter-spacing="-1">PDU</text>
-                        <!-- Red Right Bracket -->
                         <path d="M 152 8 C 170 8 170 57 152 57 L 164 57 C 178 57 178 8 164 8 Z" fill="#E11D48"/>
                     </svg>
                     <span class="text-[9px] font-extrabold tracking-widest text-slate-300 uppercase mt-1 text-center">Internet Service Provider</span>
@@ -117,7 +120,7 @@
             </div>
         </header>
 
-        <!-- Router Cards Grid (5 Kolom di Layar Lebar/Desktop) -->
+        <!-- Router Cards Grid (5 Kolom) -->
         <main class="p-4 flex-1">
             <div id="routerGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                 <!-- Card Routers dirender secara dinamis -->
@@ -196,7 +199,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
-        // DAFTAR EMAIL ADMIN (Punya Akses Tambah, Edit, dan Hapus)
+        // DAFTAR EMAIL ADMIN
         const ADMIN_EMAILS = [
             "voice.pekanbaru@gmail.com"
         ];
@@ -345,14 +348,14 @@
                                 ${adminActionButtons}
                             </div>
 
-                            <!-- Area Rendering Grafik Compact -->
-                            <div class="bg-slate-900/90 rounded-lg p-1.5 border border-slate-700/50 my-2 flex items-center justify-center min-h-[110px] overflow-hidden relative">
+                            <!-- Container Grafik dengan padding seragam agar Teks Max/Avg/Current MikroTik Utuh -->
+                            <div class="bg-white rounded-lg p-1 border border-slate-700/50 my-2 flex items-center justify-center min-h-[145px] overflow-hidden relative">
                                 <img src="${proxyGraphUrl}" 
                                      alt="Graph ${router.name}" 
-                                     class="graph-img max-w-full h-auto rounded"
+                                     class="graph-img rounded"
                                      onerror="this.onerror=null; this.src='${rawGraphUrl}'; this.onerror=function(){ this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden'); };" />
                                 
-                                <div class="hidden text-center p-2">
+                                <div class="hidden text-center p-2 bg-slate-900 w-full h-full flex flex-col items-center justify-center">
                                     <i class="fa-solid fa-chart-area text-sky-400 text-xl mb-1"></i>
                                     <p class="text-[11px] text-slate-300 font-semibold leading-tight">Cek Interface / Mikrotik</p>
                                     <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[10px] bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-2 py-1 rounded transition mt-2">
