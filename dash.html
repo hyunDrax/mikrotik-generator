@@ -28,7 +28,7 @@
     </script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        /* Menggunakan object-contain agar seluruh grafik + teks Max/Avg/Cur MikroTik terlihat utuh */
+        /* Menggunakan object-contain agar grafik + teks Max/Avg/Cur MikroTik terlihat utuh */
         .graph-img { 
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); 
             width: 100%;
@@ -83,7 +83,8 @@
     <!-- Main Dashboard Container -->
     <div id="mainDashboard" class="hidden flex-1 flex flex-col">
         <!-- Header -->
-        <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-40">
+        <header class="bg-slate-900 border-b border-slate-800 px-4 py-2.5 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-40">
+            <!-- Brand & Info User -->
             <div class="flex items-center space-x-3">
                 <div class="flex items-center justify-center">
                     <svg class="h-7 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -97,6 +98,15 @@
                     <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
                         <span id="userDisplay" class="text-sky-400 font-semibold"><i class="fa-solid fa-user-circle mr-1"></i> -</span>
                     </p>
+                </div>
+            </div>
+
+            <!-- Jam Digital Real-Time & Tanggal (Tengah Header) -->
+            <div class="flex items-center space-x-2 bg-slate-950/60 border border-slate-800 px-3.5 py-1.5 rounded-xl shadow-inner">
+                <i class="fa-regular fa-clock text-sky-400 text-sm animate-pulse"></i>
+                <div class="flex flex-col text-center">
+                    <span id="clockTime" class="text-sm font-extrabold font-mono text-white leading-none tracking-wider">00:00:00 WIB</span>
+                    <span id="clockDate" class="text-[10px] text-slate-400 font-semibold mt-0.5">Senin, 1 Januari 2026</span>
                 </div>
             </div>
 
@@ -207,6 +217,33 @@
         let isRegisterMode = false;
         let routersList = [];
         let currentUserEmail = "";
+
+        // Function Real-Time Clock & Date
+        function updateClock() {
+            const now = new Date();
+
+            // Format Jam (HH:MM:SS WIB)
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const timeStr = `${hours}:${minutes}:${seconds} WIB`;
+
+            // Format Tanggal (Hari, DD Bulan YYYY)
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('id-ID', options);
+
+            const clockTimeEl = document.getElementById('clockTime');
+            const clockDateEl = document.getElementById('clockDate');
+
+            if (clockTimeEl && clockDateEl) {
+                clockTimeEl.innerText = timeStr;
+                clockDateEl.innerText = dateStr;
+            }
+        }
+
+        // Jalankan clock setiap 1 detik
+        setInterval(updateClock, 1000);
+        updateClock(); // Run immediately
 
         // Auth Listener Multi-User
         auth.onAuthStateChanged((user) => {
@@ -348,7 +385,7 @@
                                 ${adminActionButtons}
                             </div>
 
-                            <!-- Container Grafik dengan padding seragam agar Teks Max/Avg/Current MikroTik Utuh -->
+                            <!-- Container Grafik -->
                             <div class="bg-white rounded-lg p-1 border border-slate-700/50 my-2 flex items-center justify-center min-h-[145px] overflow-hidden relative">
                                 <img src="${proxyGraphUrl}" 
                                      alt="Graph ${router.name}" 
