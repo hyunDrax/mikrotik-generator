@@ -28,18 +28,18 @@
     </script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        .graph-img { filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4)); min-height: 140px; }
+        .graph-img { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); min-height: 110px; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
     <!-- Auth Screen Modal (Login / Register Multi-User) -->
     <div id="authModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50">
-        <div class="bg-slate-800 p-8 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
+        <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
             <!-- Logo PDU Tanpa Background Putih (Transparan & Rapat) -->
-            <div class="flex flex-col items-center justify-center mb-5">
+            <div class="flex flex-col items-center justify-center mb-4">
                 <div class="flex flex-col items-center">
-                    <svg class="h-14 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="h-12 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <!-- Red Left Bracket -->
                         <path d="M 28 8 C 10 8 10 57 28 57 L 16 57 C 2 57 2 8 16 8 Z" fill="#E11D48"/>
                         <!-- PDU Blue Text (Center Presisi) -->
@@ -51,19 +51,19 @@
                 </div>
             </div>
             
-            <h2 id="authTitle" class="text-xl font-bold mb-1 text-center text-white">Estate Dashboard Monitoring</h2>
-            <p id="authSubtitle" class="text-slate-400 text-xs text-center mb-6">Masukkan kredensial pengguna Anda.</p>
+            <h2 id="authTitle" class="text-lg font-bold mb-1 text-center text-white">Estate Dashboard Monitoring</h2>
+            <p id="authSubtitle" class="text-slate-400 text-xs text-center mb-5">Masukkan kredensial pengguna Anda.</p>
             
-            <form onsubmit="handleAuthSubmit(event)" class="space-y-4">
+            <form onsubmit="handleAuthSubmit(event)" class="space-y-3.5">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Email / Username</label>
-                    <input type="email" id="authEmail" required placeholder="user@domain.com" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500">
+                    <input type="email" id="authEmail" required placeholder="user@domain.com" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Password / PIN</label>
-                    <input type="password" id="authPassword" required placeholder="******" class="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500">
+                    <input type="password" id="authPassword" required placeholder="******" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-sky-500">
                 </div>
-                <button type="submit" id="authSubmitBtn" class="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-3 rounded-xl transition duration-200">
+                <button type="submit" id="authSubmitBtn" class="w-full bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold py-2.5 rounded-xl transition duration-200">
                     Masuk
                 </button>
             </form>
@@ -80,18 +80,18 @@
     <!-- Main Dashboard Container -->
     <div id="mainDashboard" class="hidden flex-1 flex flex-col">
         <!-- Header -->
-        <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-40">
+        <header class="bg-slate-900 border-b border-slate-800 px-4 py-3 flex flex-wrap justify-between items-center gap-3 sticky top-0 z-40">
             <div class="flex items-center space-x-3">
                 <div class="flex items-center justify-center">
-                    <svg class="h-8 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="h-7 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M 28 8 C 10 8 10 57 28 57 L 16 57 C 2 57 2 8 16 8 Z" fill="#E11D48"/>
                         <text x="90" y="49" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="48" fill="#38BDF8" text-anchor="middle" letter-spacing="-1">PDU</text>
                         <path d="M 152 8 C 170 8 170 57 152 57 L 164 57 C 178 57 178 8 164 8 Z" fill="#E11D48"/>
                     </svg>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold leading-tight">Estate Dashboard Monitoring</h1>
-                    <p class="text-xs text-slate-400 flex items-center gap-2">
+                    <h1 class="text-base font-bold leading-tight">Estate Dashboard Monitoring</h1>
+                    <p class="text-[11px] text-slate-400 flex items-center gap-1.5">
                         <span id="userDisplay" class="text-sky-400 font-semibold"><i class="fa-solid fa-user-circle mr-1"></i> -</span>
                     </p>
                 </div>
@@ -99,63 +99,61 @@
 
             <!-- Header Actions -->
             <div class="flex items-center space-x-2">
-                <!-- Tombol Tambah Router (Hanya Tampil untuk Admin) -->
-                <button id="addRouterBtn" onclick="openAddModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition hidden">
+                <button id="addRouterBtn" onclick="openAddModal()" class="bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 font-semibold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition hidden">
                     <i class="fa-solid fa-plus"></i> Tambah Router
                 </button>
-                <button onclick="openChangePasswordModal()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold px-3 py-2 rounded-lg text-sm flex items-center gap-1.5 transition" title="Ganti Password Akun Ini">
+                <button onclick="openChangePasswordModal()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition" title="Ganti Password Akun Ini">
                     <i class="fa-solid fa-key"></i> Ganti Password
                 </button>
-                <!-- Tombol Reset (Hanya Tampil untuk Admin) -->
-                <button id="resetCloudBtn" onclick="forceResetCloudData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-2 rounded-lg text-sm transition hidden" title="Reset IP Cloud ke Publik (Admin Only)">
+                <button id="resetCloudBtn" onclick="forceResetCloudData()" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 p-1.5 rounded-lg text-xs transition hidden" title="Reset IP Cloud ke Publik (Admin Only)">
                     <i class="fa-solid fa-arrows-rotate"></i> Reset IP
                 </button>
-                <button onclick="refreshGraphs()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-2 rounded-lg text-sm transition" title="Refresh Grafik">
+                <button onclick="refreshGraphs()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 p-1.5 rounded-lg text-xs transition" title="Refresh Grafik">
                     <i class="fa-solid fa-rotate"></i>
                 </button>
-                <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 p-2 rounded-lg text-sm transition" title="Keluar">
+                <button onclick="logout()" class="bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700 p-1.5 rounded-lg text-xs transition" title="Keluar">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
         </header>
 
-        <!-- Router Cards Grid -->
-        <main class="p-6 flex-1">
-            <div id="routerGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Router Cards Grid (5 Kolom di Layar Lebar/Desktop) -->
+        <main class="p-4 flex-1">
+            <div id="routerGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                 <!-- Card Routers dirender secara dinamis -->
             </div>
         </main>
 
         <!-- Footer -->
-        <footer class="bg-slate-900 border-t border-slate-800 px-6 py-4 text-center text-xs text-slate-500">
+        <footer class="bg-slate-900 border-t border-slate-800 px-4 py-3 text-center text-[11px] text-slate-500">
             Estate Dashboard Monitoring &copy; 2026 - PT Panca Duta Utama (PDU)
         </footer>
     </div>
 
     <!-- Modal Tambah/Edit Router (Admin Only) -->
     <div id="routerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 max-w-md w-full">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modalTitle" class="text-lg font-bold">Tambah Router Baru</h3>
+        <div class="bg-slate-800 p-5 rounded-xl shadow-xl border border-slate-700 max-w-md w-full">
+            <div class="flex justify-between items-center mb-3">
+                <h3 id="modalTitle" class="text-base font-bold">Tambah Router Baru</h3>
                 <button onclick="closeRouterModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form id="routerForm" onsubmit="saveRouter(event)" class="space-y-4">
+            <form id="routerForm" onsubmit="saveRouter(event)" class="space-y-3">
                 <input type="hidden" id="routerId">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Router</label>
-                    <input type="text" id="routerName" required placeholder="Contoh: RLZ, RMP, SERAYA" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
+                    <input type="text" id="routerName" required placeholder="Contoh: RLZ, RMP, SERAYA" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">IP & Port Router (Publik)</label>
-                    <input type="text" id="routerHost" required placeholder="Contoh: 116.90.181.18:891" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
+                    <input type="text" id="routerHost" required placeholder="Contoh: 116.90.181.18:891" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Nama Interface Mikrotik</label>
-                    <input type="text" id="routerInterface" required placeholder="Contoh: ether1, ether1-WAN, bridge1" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
+                    <input type="text" id="routerInterface" required placeholder="Contoh: ether1, ether1-WAN, bridge1" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-sky-500">
                 </div>
-                <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" onclick="closeRouterModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-semibold">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-sky-500 hover:bg-sky-600 text-slate-950 rounded-lg text-sm font-bold">Simpan Router</button>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeRouterModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-semibold">Batal</button>
+                    <button type="submit" class="px-3 py-1.5 bg-sky-500 hover:bg-sky-600 text-slate-950 rounded-lg text-xs font-bold">Simpan Router</button>
                 </div>
             </form>
         </div>
@@ -163,19 +161,19 @@
 
     <!-- Modal Ganti Password -->
     <div id="passwordModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
-        <div class="bg-slate-800 p-6 rounded-xl shadow-xl border border-slate-700 max-w-sm w-full">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold">Ganti Password Akun</h3>
+        <div class="bg-slate-800 p-5 rounded-xl shadow-xl border border-slate-700 max-w-sm w-full">
+            <div class="flex justify-between items-center mb-3">
+                <h3 class="text-base font-bold">Ganti Password Akun</h3>
                 <button onclick="closeChangePasswordModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
             </div>
-            <form onsubmit="updateUserPassword(event)" class="space-y-4">
+            <form onsubmit="updateUserPassword(event)" class="space-y-3">
                 <div>
                     <label class="block text-xs font-semibold text-slate-400 mb-1">Password Baru</label>
-                    <input type="password" id="newPasswordInput" required minlength="6" placeholder="Minimal 6 Karakter" class="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-amber-500">
+                    <input type="password" id="newPasswordInput" required minlength="6" placeholder="Minimal 6 Karakter" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-sm focus:outline-none focus:border-amber-500">
                 </div>
-                <div class="flex justify-end space-x-3 pt-2">
-                    <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm font-semibold">Batal</button>
-                    <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-sm font-bold">Simpan Password</button>
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" onclick="closeChangePasswordModal()" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-semibold">Batal</button>
+                    <button type="submit" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 rounded-lg text-xs font-bold">Simpan Password</button>
                 </div>
             </form>
         </div>
@@ -217,10 +215,9 @@
                 const isAdmin = ADMIN_EMAILS.includes(currentUserEmail);
                 document.getElementById('userDisplay').innerHTML = `
                     <i class="fa-solid fa-user-circle mr-1"></i> ${user.email} 
-                    ${isAdmin ? '<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-red-500/20 text-red-400 border border-red-500/30 rounded font-bold">ADMIN</span>' : '<span class="ml-1 px-1.5 py-0.5 text-[10px] bg-slate-700 text-slate-300 rounded font-semibold">VIEW ONLY</span>'}
+                    ${isAdmin ? '<span class="ml-1 px-1.5 py-0.5 text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 rounded font-bold">ADMIN</span>' : '<span class="ml-1 px-1.5 py-0.5 text-[9px] bg-slate-700 text-slate-300 rounded font-semibold">VIEW ONLY</span>'}
                 `;
 
-                // Tampilkan/Sembunyikan tombol Tambah & Reset khusus Admin
                 if (isAdmin) {
                     document.getElementById('addRouterBtn').classList.remove('hidden');
                     document.getElementById('resetCloudBtn').classList.remove('hidden');
@@ -324,56 +321,53 @@
                 const activeUserWebfigUrl = `http://${cleanHost}/webfig/#IP:Hotspot.Active`;
                 const fullGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/`;
 
-                // Tombol Edit dan Hapus HANYA dirender jika pengguna adalah ADMIN
                 const adminActionButtons = isAdmin ? `
                     <div class="flex space-x-1">
-                        <button onclick="openEditModal('${router.id}')" class="text-slate-400 hover:text-sky-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Edit Router">
-                            <i class="fa-solid fa-pen-to-square"></i>
+                        <button onclick="openEditModal('${router.id}')" class="text-slate-400 hover:text-sky-400 p-1 rounded hover:bg-slate-700 transition" title="Edit Router">
+                            <i class="fa-solid fa-pen-to-square text-xs"></i>
                         </button>
-                        <button onclick="deleteRouter('${router.id}')" class="text-slate-400 hover:text-red-400 p-1.5 rounded-lg hover:bg-slate-700 transition" title="Hapus Router">
-                            <i class="fa-solid fa-trash"></i>
+                        <button onclick="deleteRouter('${router.id}')" class="text-slate-400 hover:text-red-400 p-1 rounded hover:bg-slate-700 transition" title="Hapus Router">
+                            <i class="fa-solid fa-trash text-xs"></i>
                         </button>
                     </div>
                 ` : '';
 
                 const cardHtml = `
-                    <div class="bg-slate-800 rounded-2xl border border-slate-700/80 p-5 flex flex-col justify-between shadow-lg hover:border-sky-500/40 transition duration-300">
+                    <div class="bg-slate-800 rounded-xl border border-slate-700/80 p-3 flex flex-col justify-between shadow-md hover:border-sky-500/40 transition duration-300">
                         <div>
-                            <div class="flex justify-between items-center mb-3">
+                            <div class="flex justify-between items-start mb-2">
                                 <div>
-                                    <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                                        <i class="fa-solid fa-server text-sky-400 text-base"></i> ${router.name}
+                                    <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                                        <i class="fa-solid fa-server text-sky-400 text-xs"></i> ${router.name}
                                     </h3>
-                                    <p class="text-xs text-slate-400 font-mono mt-0.5">${cleanHost} (${router.interfaceName})</p>
+                                    <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate max-w-[130px]" title="${cleanHost} (${router.interfaceName})">${cleanHost} (${router.interfaceName})</p>
                                 </div>
                                 ${adminActionButtons}
                             </div>
 
-                            <!-- Area Rendering Grafik -->
-                            <div class="bg-slate-900/90 rounded-xl p-2 border border-slate-700/50 my-3 flex items-center justify-center min-h-[140px] overflow-hidden relative">
+                            <!-- Area Rendering Grafik Compact -->
+                            <div class="bg-slate-900/90 rounded-lg p-1.5 border border-slate-700/50 my-2 flex items-center justify-center min-h-[110px] overflow-hidden relative">
                                 <img src="${proxyGraphUrl}" 
                                      alt="Graph ${router.name}" 
                                      class="graph-img max-w-full h-auto rounded"
                                      onerror="this.onerror=null; this.src='${rawGraphUrl}'; this.onerror=function(){ this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden'); };" />
                                 
-                                <div class="hidden text-center p-3">
-                                    <i class="fa-solid fa-chart-area text-sky-400 text-2xl mb-2"></i>
-                                    <p class="text-xs text-slate-300 font-semibold">Cek Interface / Koneksi MikroTik</p>
-                                    <p class="text-[10px] text-slate-400 mt-1 mb-2">Interface <b>${router.interfaceName}</b> mungkin tidak aktif di Graphing.</p>
-                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-xs bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition">
-                                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Grafik Langsung
+                                <div class="hidden text-center p-2">
+                                    <i class="fa-solid fa-chart-area text-sky-400 text-xl mb-1"></i>
+                                    <p class="text-[11px] text-slate-300 font-semibold leading-tight">Cek Interface / Mikrotik</p>
+                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[10px] bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-2 py-1 rounded transition mt-2">
+                                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Grafik
                                     </a>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="pt-2 flex justify-between items-center border-t border-slate-700/50 mt-2">
-                            <!-- Tombol Active Users tetap bisa diakses semua user -->
-                            <a href="${activeUserWebfigUrl}" target="_blank" class="text-xs bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
-                                <i class="fa-solid fa-users text-xs"></i> Active Users
+                        <div class="pt-2 flex justify-between items-center border-t border-slate-700/50 mt-1">
+                            <a href="${activeUserWebfigUrl}" target="_blank" class="text-[10px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-semibold px-2 py-1 rounded flex items-center gap-1 transition">
+                                <i class="fa-solid fa-users text-[9px]"></i> Active Users
                             </a>
-                            <a href="${fullGraphUrl}" target="_blank" class="text-xs text-slate-400 hover:text-slate-200 transition">
-                                Detail Graph <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            <a href="${fullGraphUrl}" target="_blank" class="text-[10px] text-slate-400 hover:text-slate-200 transition">
+                                Detail <i class="fa-solid fa-chevron-right text-[8px]"></i>
                             </a>
                         </div>
                     </div>
