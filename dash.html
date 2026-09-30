@@ -9,6 +9,9 @@
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- SortableJS untuk Drag and Drop -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+
     <!-- Firebase SDK (v10.8.0 - Compatibility Mode) -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -28,12 +31,26 @@
     </script>
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        /* Menggunakan object-contain agar grafik + teks Max/Avg/Cur MikroTik terlihat utuh */
         .graph-img { 
             filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4)); 
             width: 100%;
             height: auto;
             object-fit: contain;
+        }
+        /* Style untuk Drag and Drop */
+        .cursor-grab-card {
+            cursor: grab;
+        }
+        .cursor-grab-card:active {
+            cursor: grabbing;
+        }
+        .sortable-ghost {
+            opacity: 0.3;
+            transform: scale(0.98);
+            border: 2px dashed #38bdf8 !important;
+        }
+        .sortable-drag {
+            opacity: 0.9;
         }
     </style>
 </head>
@@ -42,7 +59,7 @@
     <!-- Auth Screen Modal (Login / Register Multi-User) -->
     <div id="authModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50">
         <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
-            <!-- Logo PDU Tanpa Background Putih -->
+            <!-- Logo PDU -->
             <div class="flex flex-col items-center justify-center mb-4">
                 <div class="flex flex-col items-center">
                     <svg class="h-12 w-auto" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -101,7 +118,7 @@
                 </div>
             </div>
 
-            <!-- Jam Digital Real-Time & Tanggal (Tengah Header) -->
+            <!-- Jam Digital Real-Time & Tanggal -->
             <div class="flex items-center space-x-2 bg-slate-950/60 border border-slate-800 px-3.5 py-1.5 rounded-xl shadow-inner">
                 <i class="fa-regular fa-clock text-sky-400 text-sm animate-pulse"></i>
                 <div class="flex flex-col text-center">
@@ -130,7 +147,7 @@
             </div>
         </header>
 
-        <!-- Router Cards Grid (5 Kolom) -->
+        <!-- Router Cards Grid (5 Kolom, Support Drag & Drop) -->
         <main class="p-4 flex-1">
             <div id="routerGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                 <!-- Card Routers dirender secara dinamis -->
@@ -217,18 +234,16 @@
         let isRegisterMode = false;
         let routersList = [];
         let currentUserEmail = "";
+        let sortableInstance = null;
 
         // Function Real-Time Clock & Date
         function updateClock() {
             const now = new Date();
-
-            // Format Jam (HH:MM:SS WIB)
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
             const timeStr = `${hours}:${minutes}:${seconds} WIB`;
 
-            // Format Tanggal (Hari, DD Bulan YYYY)
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             const dateStr = now.toLocaleDateString('id-ID', options);
 
@@ -240,10 +255,8 @@
                 clockDateEl.innerText = dateStr;
             }
         }
-
-        // Jalankan clock setiap 1 detik
         setInterval(updateClock, 1000);
-        updateClock(); // Run immediately
+        updateClock();
 
         // Auth Listener Multi-User
         auth.onAuthStateChanged((user) => {
@@ -267,12 +280,42 @@
                 }
 
                 listenToFirebase();
+                initSortable();
             } else {
                 currentUserEmail = "";
                 document.getElementById('authModal').classList.remove('hidden');
                 document.getElementById('mainDashboard').classList.add('hidden');
             }
         });
+
+        function initSortable() {
+            const grid = document.getElementById('routerGrid');
+            if (sortableInstance) sortableInstance.destroy();
+
+            sortableInstance = new Sortable(grid, {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                dragClass: 'sortable-drag',
+                onEnd: function (evt) {
+                    saveNewOrderToFirebase();
+                }
+            });
+        }
+
+        async function saveNewOrderToFirebase() {
+            const cardElements = document.querySelectorAll('#routerGrid > div[data-id]');
+            const batch = db.batch();
+
+            cardElements.forEach((card, index) => {
+                const docId = card.getAttribute('data-id');
+                if (docId) {
+                    const ref = db.collection('routers').doc(docId);
+                    batch.update(ref, { order: index });
+                }
+            });
+
+            await batch.commit();
+        }
 
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
@@ -312,6 +355,9 @@
                     routersList.push({ id: doc.id, ...doc.data() });
                 });
 
+                // Urutkan berdasarkan kolom 'order' (jika ada)
+                routersList.sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
+
                 if (routersList.length === 0 && ADMIN_EMAILS.includes(currentUserEmail)) {
                     seedDefaultRouters();
                     return;
@@ -323,9 +369,9 @@
 
         function seedDefaultRouters() {
             const defaults = [
-                { name: "RLZ", host: "116.90.181.18:891", interfaceName: "ether1" },
-                { name: "RMP", host: "116.90.181.58:891", interfaceName: "ether1" },
-                { name: "SERAYA", host: "116.90.181.61:891", interfaceName: "ether1" }
+                { name: "RLZ", host: "116.90.181.18:891", interfaceName: "ether1", order: 0 },
+                { name: "RMP", host: "116.90.181.58:891", interfaceName: "ether1", order: 1 },
+                { name: "SERAYA", host: "116.90.181.61:891", interfaceName: "ether1", order: 2 }
             ];
             defaults.forEach(r => db.collection('routers').add(r));
         }
@@ -373,14 +419,17 @@
                 ` : '';
 
                 const cardHtml = `
-                    <div class="bg-slate-800 rounded-xl border border-slate-700/80 p-3 flex flex-col justify-between shadow-md hover:border-sky-500/40 transition duration-300">
+                    <div data-id="${router.id}" class="bg-slate-800 rounded-xl border border-slate-700/80 p-3 flex flex-col justify-between shadow-md hover:border-sky-500/40 transition duration-300 cursor-grab-card">
                         <div>
                             <div class="flex justify-between items-start mb-2">
-                                <div>
-                                    <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
-                                        <i class="fa-solid fa-server text-sky-400 text-xs"></i> ${router.name}
-                                    </h3>
-                                    <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate max-w-[130px]" title="${cleanHost} (${router.interfaceName})">${cleanHost} (${router.interfaceName})</p>
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-grip-vertical text-slate-500 hover:text-slate-300 text-xs cursor-grab"></i>
+                                    <div>
+                                        <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
+                                            <i class="fa-solid fa-server text-sky-400 text-xs"></i> ${router.name}
+                                        </h3>
+                                        <p class="text-[10px] text-slate-400 font-mono mt-0.5 truncate max-w-[120px]" title="${cleanHost} (${router.interfaceName})">${cleanHost} (${router.interfaceName})</p>
+                                    </div>
                                 </div>
                                 ${adminActionButtons}
                             </div>
@@ -460,7 +509,8 @@
             const data = {
                 name: document.getElementById('routerName').value.trim(),
                 host: cleanHost,
-                interfaceName: document.getElementById('routerInterface').value.trim()
+                interfaceName: document.getElementById('routerInterface').value.trim(),
+                order: id ? (routersList.find(r => r.id === id)?.order ?? 999) : routersList.length
             };
 
             if (id) {
@@ -482,7 +532,6 @@
             }
         }
 
-        // Ganti Password Akun Logged In
         function openChangePasswordModal() {
             document.getElementById('passwordModal').classList.remove('hidden');
         }
