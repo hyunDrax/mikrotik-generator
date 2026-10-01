@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estate Dashboard Monitoring - Mikrotik</title>
+    <title>Estate Dashboard LIVE Monitoring</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome Icons -->
@@ -53,6 +53,28 @@
         }
         .sortable-drag {
             opacity: 0.9;
+        }
+
+        /* --- Efek TV Kabur / Rusak (CRT Static Effect) --- */
+        .tv-static-bg {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 3px, 6px 100%;
+            animation: crtNoise 0.2s infinite;
+        }
+        @keyframes crtNoise {
+            0% { background-position: 0 0, 0 0; }
+            50% { background-position: 0 2px, 1px 0; }
+            100% { background-position: 0 0, 0 0; }
+        }
+        .tv-static-bg::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            z-index: 1;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -611,8 +633,8 @@
                                 </div>
                             </div>
 
-                            <!-- Container Grafik -->
-                            <div class="bg-white rounded-lg p-1 border border-slate-700/50 my-1 flex items-center justify-center min-h-[145px] overflow-hidden relative">
+                            <!-- Container Grafik dengan Efek TV Kabur saat Offline -->
+                            <div class="bg-slate-900 rounded-lg p-1 border border-slate-700/50 my-1 flex items-center justify-center min-h-[145px] overflow-hidden relative">
                                 <a href="${fullGraphUrl}" target="_blank" class="w-full block" title="Klik untuk Buka Grafik di Tab Baru">
                                     <img src="${proxyGraphUrl}" 
                                          alt="Graph ${router.name}" 
@@ -620,11 +642,13 @@
                                          onerror="this.onerror=null; this.src='${rawGraphUrl}'; this.onerror=function(){ this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden'); };" />
                                 </a>
                                 
-                                <div class="hidden text-center p-2 bg-slate-900 w-full h-full flex flex-col items-center justify-center">
-                                    <i class="fa-solid fa-chart-area text-sky-400 text-xl mb-1"></i>
-                                    <p class="text-[11px] text-slate-300 font-semibold leading-tight">Cek Interface / Mikrotik</p>
-                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[11px] bg-sky-500 hover:bg-sky-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg transition mt-2">
-                                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Grafik
+                                <!-- Tampilan Error Grafik Offline (Efek TV Statis/Kabur) -->
+                                <div class="hidden text-center p-2 bg-slate-950 w-full h-full flex flex-col items-center justify-center absolute inset-0 tv-static-bg z-10">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 animate-bounce"></i>
+                                    <p class="text-[11px] text-red-400 font-bold uppercase tracking-wider">OFFLINE / NO SIGNAL</p>
+                                    <p class="text-[10px] text-slate-400 font-mono mb-2">Cek Router / Webfig</p>
+                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[10px] bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 font-bold px-2.5 py-1 rounded-md transition shadow">
+                                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Direct Link
                                     </a>
                                 </div>
                             </div>
@@ -710,7 +734,7 @@
                 return;
             }
 
-            if (confirm('Yakin ingin menghapus router ini dari cloud?')) {
+            if (confirm('Yakin ingin menghapus router me ini dari cloud?')) {
                 db.collection('routers').doc(id).delete();
             }
         }
@@ -742,11 +766,11 @@
             renderRouters();
         }
         // Auto-refresh grafik dan cuaca setiap 5 menit (300000 ms)
-setInterval(() => {
-    if (currentUserEmail) {
-        renderRouters();
-    }
-}, 300000);
+        setInterval(() => {
+            if (currentUserEmail) {
+                renderRouters();
+            }
+        }, 300000);
     </script>
 </body>
 </html>
