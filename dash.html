@@ -534,13 +534,12 @@
             }
         }
 
-        // FUNGSI MASKING BINTANG FULL
-        function getMaskedHost(fullHost) {
-            if (!fullHost) return "";
-            return "***.***.***.***:***";
+        // FUNGSI MASKING BINTANG FULL (Termasuk Interface)
+        function getMaskedHost() {
+            return "***.***.***.***:*** (****)";
         }
 
-        // TOGGLE VISIBILITY IP & PORT DINAMIS
+        // TOGGLE VISIBILITY IP, PORT, DAN INTERFACE DINAMIS
         function toggleIpVisibility(routerId, cleanHost, interfaceName) {
             const textEl = document.getElementById(`ip-text-${routerId}`);
             const iconEl = document.getElementById(`ip-icon-${routerId}`);
@@ -553,7 +552,7 @@
                     iconEl.classList.remove('fa-eye');
                     iconEl.classList.add('fa-eye-slash');
                 } else {
-                    textEl.innerText = `${getMaskedHost(cleanHost)} (${interfaceName})`;
+                    textEl.innerText = getMaskedHost();
                     textEl.dataset.masked = "true";
                     iconEl.classList.remove('fa-eye-slash');
                     iconEl.classList.add('fa-eye');
@@ -634,7 +633,7 @@
             routersList.forEach((router) => {
                 const timestamp = new Date().getTime();
                 let cleanHost = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
-                let maskedHost = getMaskedHost(cleanHost);
+                let maskedHost = getMaskedHost();
                 
                 const rawGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
                 const proxyGraphUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawGraphUrl)}&n=-1`;
@@ -674,12 +673,12 @@
                                 ${adminActionButtons}
                             </div>
 
-                            <!-- IP & Port Router dengan Fitur Hidden / Fa-Eye Toggle Dinamis -->
+                            <!-- IP, Port & Interface Router (Fitur Masking Full Bintang) -->
                             <div class="flex justify-between items-center bg-slate-900/90 border border-slate-700/70 px-2 py-1 rounded-md mb-2">
-                                <span id="ip-text-${router.id}" data-masked="true" class="text-[10px] font-mono text-slate-300 truncate max-w-[170px]" title="Alamat IP & Port Router">
-                                    ${maskedHost} (${router.interfaceName})
+                                <span id="ip-text-${router.id}" data-masked="true" class="text-[10px] font-mono text-slate-300 truncate max-w-[170px]" title="Alamat IP, Port & Interface Router">
+                                    ${maskedHost}
                                 </span>
-                                <button onclick="toggleIpVisibility('${router.id}', '${cleanHost}', '${router.interfaceName}')" class="text-slate-400 hover:text-sky-400 p-0.5 text-xs transition ml-1" title="Tampilkan / Sembunyikan IP & Port">
+                                <button onclick="toggleIpVisibility('${router.id}', '${cleanHost}', '${router.interfaceName}')" class="text-slate-400 hover:text-sky-400 p-0.5 text-xs transition ml-1" title="Tampilkan / Sembunyikan Detail">
                                     <i id="ip-icon-${router.id}" class="fa-solid fa-eye"></i>
                                 </button>
                             </div>
@@ -703,7 +702,7 @@
                                          onerror="handleGraphError(this, '${overlayId}', '${rawGraphUrl}')" />
                                 </a>
                                 
-                                <!-- Overlay Offline Noise TV (CRT Noise Effect) tanpa Tombol Direct Link -->
+                                <!-- Overlay Offline Noise TV (CRT Noise Effect) -->
                                 <div id="${overlayId}" class="hidden text-center p-2 bg-slate-950/95 w-full h-full flex flex-col items-center justify-center absolute inset-0 tv-static-bg z-10">
                                     <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 animate-bounce"></i>
                                     <p class="text-[11px] text-red-400 font-bold uppercase tracking-wider">OFFLINE / NO SIGNAL</p>
