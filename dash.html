@@ -741,6 +741,12 @@
         function refreshGraphs() {
             renderRouters();
         }
+        // Auto-refresh grafik dan cuaca setiap 5 menit (300000 ms)
+setInterval(() => {
+    if (currentUserEmail) {
+        renderRouters();
+    }
+}, 300000);
     </script>
 </body>
 </html>
