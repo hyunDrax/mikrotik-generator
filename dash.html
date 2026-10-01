@@ -730,13 +730,13 @@
                 // Ambil cuaca berdasarkan string koordinat
                 fetchWeather(router.coords, weatherElemId);
 
-                // Cek Validasi load gambar setelah jeda 10 detik (20000ms)
+                // Cek Validasi load gambar setelah jeda 10 detik (30000ms)
                 setTimeout(() => {
                     const imgEl = document.getElementById(imgId);
                     if (imgEl && (!imgEl.complete || imgEl.naturalWidth === 0)) {
                         triggerOfflineNoise(imgEl, overlayId);
                     }
-                }, 20000);
+                }, 30000);
             });
         }
 
