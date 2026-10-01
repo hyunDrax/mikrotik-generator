@@ -55,9 +55,9 @@
             opacity: 0.9;
         }
 
-        /* --- Efek TV Kabur / Rusak (CRT Static Effect) --- */
+        /* --- Efek TV Kabur / Static CRT Noise Effect --- */
         .tv-static-bg {
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.08), rgba(0, 255, 0, 0.03), rgba(0, 0, 255, 0.08));
             background-size: 100% 3px, 6px 100%;
             animation: crtNoise 0.2s infinite;
         }
@@ -71,7 +71,7 @@
             display: block;
             position: absolute;
             top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.4) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.5) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
             z-index: 1;
             background-size: 100% 2px, 3px 100%;
             pointer-events: none;
@@ -213,7 +213,7 @@
         </div>
     </div>
 
-    <!-- Modal Tambah/Edit Router (Dengan Format Google Maps Tunggal) -->
+    <!-- Modal Tambah/Edit Router -->
     <div id="routerModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
         <div class="bg-slate-800 p-5 rounded-xl shadow-xl border border-slate-700 max-w-md w-full">
             <div class="flex justify-between items-center mb-3">
@@ -534,18 +534,54 @@
             }
         }
 
+        // FUNGSI MASKING ALAMAT IP & PORT ROUTER
+        function getMaskedHost(fullHost) {
+            if (!fullHost) return "";
+            const hostParts = fullHost.split(':');
+            const ip = hostParts[0];
+            const port = hostParts[1] ? `:${hostParts[1]}` : '';
+
+            const ipSegments = ip.split('.');
+            if (ipSegments.length === 4) {
+                return `${ipSegments[0]}.${ipSegments[1]}.***.***${port ? ':***' : ''}`;
+            }
+            return fullHost.replace(/./g, '*');
+        }
+
+        // TOGGLE VISIBILITY MASKING IP & PORT
+        function toggleIpVisibility(routerId) {
+            const maskedEl = document.getElementById(`ip-masked-${routerId}`);
+            const realEl = document.getElementById(`ip-real-${routerId}`);
+            const iconEl = document.getElementById(`ip-icon-${routerId}`);
+
+            if (maskedEl && realEl && iconEl) {
+                if (realEl.classList.contains('hidden')) {
+                    realEl.classList.remove('hidden');
+                    maskedEl.classList.add('hidden');
+                    iconEl.classList.remove('fa-eye');
+                    iconEl.classList.add('fa-eye-slash');
+                } else {
+                    realEl.classList.add('hidden');
+                    maskedEl.classList.remove('hidden');
+                    iconEl.classList.remove('fa-eye-slash');
+                    iconEl.classList.add('fa-eye');
+                }
+            }
+        }
+
         // FUNGSI MENGAMBIL CUACA DARI KOORDINAT GOOGLE MAPS (Lat, Lng)
         async function fetchWeather(coordsStr, elementId) {
             if (!coordsStr) {
-                document.getElementById(elementId).innerText = "Lokasi -";
+                const weatherEl = document.getElementById(elementId);
+                if (weatherEl) weatherEl.innerText = "Lokasi -";
                 return;
             }
 
             try {
-                // Pecah teks berdasarkan koma
                 const parts = coordsStr.split(',');
                 if (parts.length < 2) {
-                    document.getElementById(elementId).innerText = "Format Salah";
+                    const weatherEl = document.getElementById(elementId);
+                    if (weatherEl) weatherEl.innerText = "Format Salah";
                     return;
                 }
 
@@ -573,7 +609,24 @@
                     }
                 }
             } catch (e) {
-                document.getElementById(elementId).innerText = "Cuaca -";
+                const weatherEl = document.getElementById(elementId);
+                if (weatherEl) weatherEl.innerText = "Cuaca -";
+            }
+        }
+
+        // FUNGSI UNTUK TAMPILAN ERROR OFFINE NOISE TV
+        function handleGraphError(imgElement, overlayId, rawUrl) {
+            // Coba direct load sekali lagi jika proxy gagal, jika tetap gagal munculkan overlay TV Static Noise
+            if (!imgElement.dataset.retried) {
+                imgElement.dataset.retried = "true";
+                imgElement.src = rawUrl;
+            } else {
+                imgElement.classList.add('hidden');
+                const overlay = document.getElementById(overlayId);
+                if (overlay) {
+                    overlay.classList.remove('hidden');
+                    overlay.classList.add('flex');
+                }
             }
         }
 
@@ -586,6 +639,7 @@
             routersList.forEach((router) => {
                 const timestamp = new Date().getTime();
                 let cleanHost = router.host.replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+                let maskedHost = getMaskedHost(cleanHost);
                 
                 const rawGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/daily.gif?t=${timestamp}`;
                 const proxyGraphUrl = `https://wsrv.nl/?url=${encodeURIComponent(rawGraphUrl)}&n=-1`;
@@ -593,6 +647,7 @@
                 const fullGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/`;
                 const activeUserWebfigUrl = `http://${cleanHost}/graphs/`;
                 const weatherElemId = `weather-${router.id}`;
+                const overlayId = `offline-overlay-${router.id}`;
 
                 const adminActionButtons = isAdmin ? `
                     <div class="flex space-x-1">
@@ -608,6 +663,7 @@
                 const cardHtml = `
                     <div data-id="${router.id}" class="bg-slate-800 rounded-xl border border-slate-700/80 p-3 flex flex-col justify-between shadow-md hover:border-sky-500/40 transition duration-300">
                         <div>
+                            <!-- Header Nama & Aksi Admin -->
                             <div class="flex justify-between items-start mb-1.5">
                                 <div class="flex items-center gap-2">
                                     <div class="drag-handle p-1 text-slate-500 hover:text-sky-400 transition" title="Geser untuk mengatur urutan">
@@ -617,10 +673,20 @@
                                         <h3 class="text-sm font-bold text-white flex items-center gap-1.5">
                                             <i class="fa-solid fa-server text-sky-400 text-xs"></i> ${router.name}
                                         </h3>
-                                        <p class="text-[10px] text-slate-400 font-mono truncate max-w-[120px]" title="${cleanHost} (${router.interfaceName})">${cleanHost} (${router.interfaceName})</p>
                                     </div>
                                 </div>
                                 ${adminActionButtons}
+                            </div>
+
+                            <!-- IP & Port Router dengan Fitur Hidden / Fa-Eye Toggle -->
+                            <div class="flex justify-between items-center bg-slate-900/90 border border-slate-700/70 px-2 py-1 rounded-md mb-2">
+                                <span class="text-[10px] font-mono text-slate-300 truncate max-w-[170px]" title="Alamat IP & Port Router">
+                                    <span id="ip-masked-${router.id}">${maskedHost} (${router.interfaceName})</span>
+                                    <span id="ip-real-${router.id}" class="hidden">${cleanHost} (${router.interfaceName})</span>
+                                </span>
+                                <button onclick="toggleIpVisibility('${router.id}')" class="text-slate-400 hover:text-sky-400 p-0.5 text-xs transition ml-1" title="Tampilkan / Sembunyikan IP & Port">
+                                    <i id="ip-icon-${router.id}" class="fa-solid fa-eye"></i>
+                                </button>
                             </div>
 
                             <!-- Baris Status Cuaca Real-Time per Estate -->
@@ -633,21 +699,21 @@
                                 </div>
                             </div>
 
-                            <!-- Container Grafik dengan Efek TV Kabur saat Offline -->
+                            <!-- Container Grafik dengan Overlay Noise TV Static saat Offline -->
                             <div class="bg-slate-900 rounded-lg p-1 border border-slate-700/50 my-1 flex items-center justify-center min-h-[145px] overflow-hidden relative">
                                 <a href="${fullGraphUrl}" target="_blank" class="w-full block" title="Klik untuk Buka Grafik di Tab Baru">
                                     <img src="${proxyGraphUrl}" 
                                          alt="Graph ${router.name}" 
                                          class="graph-img rounded"
-                                         onerror="this.onerror=null; this.src='${rawGraphUrl}'; this.onerror=function(){ this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden'); };" />
+                                         onerror="handleGraphError(this, '${overlayId}', '${rawGraphUrl}')" />
                                 </a>
                                 
-                                <!-- Tampilan Error Grafik Offline (Efek TV Statis/Kabur) -->
-                                <div class="hidden text-center p-2 bg-slate-950 w-full h-full flex flex-col items-center justify-center absolute inset-0 tv-static-bg z-10">
+                                <!-- Overlay Offline Noise TV (CRT Noise Effect) -->
+                                <div id="${overlayId}" class="hidden text-center p-2 bg-slate-950/95 w-full h-full flex flex-col items-center justify-center absolute inset-0 tv-static-bg z-10">
                                     <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 animate-bounce"></i>
                                     <p class="text-[11px] text-red-400 font-bold uppercase tracking-wider">OFFLINE / NO SIGNAL</p>
                                     <p class="text-[10px] text-slate-400 font-mono mb-2">Cek Router / Webfig</p>
-                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[10px] bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 font-bold px-2.5 py-1 rounded-md transition shadow">
+                                    <a href="${fullGraphUrl}" target="_blank" class="inline-block text-[10px] bg-slate-800 hover:bg-slate-700 text-sky-400 border border-sky-500/30 font-bold px-2.5 py-1 rounded-md transition shadow z-20">
                                         <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka Direct Link
                                     </a>
                                 </div>
@@ -666,7 +732,7 @@
                 `;
                 grid.innerHTML += cardHtml;
 
-                // Ambil cuaca berdasarkan string koordinat tunggal
+                // Ambil cuaca berdasarkan string koordinat
                 fetchWeather(router.coords, weatherElemId);
             });
         }
@@ -734,7 +800,7 @@
                 return;
             }
 
-            if (confirm('Yakin ingin menghapus router me ini dari cloud?')) {
+            if (confirm('Yakin ingin menghapus router ini dari cloud?')) {
                 db.collection('routers').doc(id).delete();
             }
         }
@@ -765,6 +831,7 @@
         function refreshGraphs() {
             renderRouters();
         }
+
         // Auto-refresh grafik dan cuaca setiap 5 menit (300000 ms)
         setInterval(() => {
             if (currentUserEmail) {
