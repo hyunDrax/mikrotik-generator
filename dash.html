@@ -56,7 +56,7 @@
 </head>
 <body class="min-h-screen flex flex-col justify-between">
 
-    <!-- Auth Screen Modal (Login / Register Multi-User) -->
+    <!-- Auth Screen Modal (Login / Register Multi-User + Google Sign In) -->
     <div id="authModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center z-50">
         <div class="bg-slate-800 p-6 rounded-2xl shadow-2xl border border-slate-700 max-w-sm w-full">
             <!-- Logo PDU -->
@@ -87,6 +87,17 @@
                     Masuk
                 </button>
             </form>
+
+            <!-- Pembatas / Separator -->
+            <div class="relative my-4">
+                <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-slate-700"></div></div>
+                <div class="relative flex justify-center text-[10px] uppercase"><span class="bg-slate-800 px-2 text-slate-400 font-semibold">Atau</span></div>
+            </div>
+
+            <!-- Tombol Sign in with Google -->
+            <button type="button" onclick="signInWithGoogle()" class="w-full bg-slate-900 hover:bg-slate-950 text-white border border-slate-700 font-semibold py-2.5 rounded-xl transition duration-200 flex items-center justify-center gap-2 text-sm">
+                <i class="fa-brands fa-google text-red-500"></i> Masuk dengan Google
+            </button>
 
             <div class="mt-4 text-center">
                 <button onclick="toggleAuthMode()" id="toggleAuthBtn" class="text-xs text-sky-400 hover:underline">
@@ -258,6 +269,16 @@
         setInterval(updateClock, 1000);
         updateClock();
 
+        // FUNGSI LOGIN DENGAN GOOGLE
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).catch((err) => {
+                const errEl = document.getElementById('authError');
+                errEl.innerText = "Gagal login dengan Google: " + err.message;
+                errEl.classList.remove('hidden');
+            });
+        }
+
         // Auth Listener Multi-User
         auth.onAuthStateChanged((user) => {
             if (user) {
@@ -407,11 +428,8 @@
 
                 const fullGraphUrl = `http://${cleanHost}/graphs/iface/${router.interfaceName}/`;
                 
-                // #region RULE ACTIVE USERS (PILIHAN FORMAT LINK)
-                // 1. Format Utama Sesuai Permintaan Baru: Mengarahkan ke halaman index graphs masing-masing IP
+                // #region RULE ACTIVE USERS
                 const activeUserWebfigUrl = `http://${cleanHost}/graphs/`;
-                
-                // 2. Rule Lama (WebFig Hotspot Active) - Didisable dengan tanda komentar (# / //) agar sewaktu-waktu bisa diaktifkan lagi
                 // const activeUserWebfigUrl = `http://${cleanHost}/webfig/#IP:Hotspot.Active`;
                 // #endregion
 
@@ -431,7 +449,6 @@
                         <div>
                             <div class="flex justify-between items-start mb-2">
                                 <div class="flex items-center gap-2">
-                                    <!-- Handle Geser/Drag Khusus -->
                                     <div class="drag-handle p-1 text-slate-500 hover:text-sky-400 transition" title="Geser untuk mengatur urutan">
                                         <i class="fa-solid fa-grip-vertical text-xs"></i>
                                     </div>
