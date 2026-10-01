@@ -534,7 +534,7 @@
             }
         }
 
-        // FUNGSI MASKING ALAMAT IP & PORT ROUTER
+        // FUNGSI MASKING FORMAT IP & PORT
         function getMaskedHost(fullHost) {
             if (!fullHost) return "";
             const hostParts = fullHost.split(':');
@@ -548,21 +548,21 @@
             return fullHost.replace(/./g, '*');
         }
 
-        // TOGGLE VISIBILITY MASKING IP & PORT
-        function toggleIpVisibility(routerId) {
-            const maskedEl = document.getElementById(`ip-masked-${routerId}`);
-            const realEl = document.getElementById(`ip-real-${routerId}`);
+        // TOGGLE VISIBILITY IP & PORT DINAMIS
+        function toggleIpVisibility(routerId, cleanHost, interfaceName) {
+            const textEl = document.getElementById(`ip-text-${routerId}`);
             const iconEl = document.getElementById(`ip-icon-${routerId}`);
 
-            if (maskedEl && realEl && iconEl) {
-                if (realEl.classList.contains('hidden')) {
-                    realEl.classList.remove('hidden');
-                    maskedEl.classList.add('hidden');
+            if (textEl && iconEl) {
+                const isMasked = textEl.dataset.masked === "true";
+                if (isMasked) {
+                    textEl.innerText = `${cleanHost} (${interfaceName})`;
+                    textEl.dataset.masked = "false";
                     iconEl.classList.remove('fa-eye');
                     iconEl.classList.add('fa-eye-slash');
                 } else {
-                    realEl.classList.add('hidden');
-                    maskedEl.classList.remove('hidden');
+                    textEl.innerText = `${getMaskedHost(cleanHost)} (${interfaceName})`;
+                    textEl.dataset.masked = "true";
                     iconEl.classList.remove('fa-eye-slash');
                     iconEl.classList.add('fa-eye');
                 }
@@ -614,19 +614,22 @@
             }
         }
 
-        // FUNGSI UNTUK TAMPILAN ERROR OFFINE NOISE TV
+        // TRIGGER OFFLINE NOISE TV APABILA GAMBAR GAGAL ATAU KOSONG
+        function triggerOfflineNoise(imgElement, overlayId) {
+            imgElement.classList.add('hidden');
+            const overlay = document.getElementById(overlayId);
+            if (overlay) {
+                overlay.classList.remove('hidden');
+                overlay.classList.add('flex');
+            }
+        }
+
         function handleGraphError(imgElement, overlayId, rawUrl) {
-            // Coba direct load sekali lagi jika proxy gagal, jika tetap gagal munculkan overlay TV Static Noise
             if (!imgElement.dataset.retried) {
                 imgElement.dataset.retried = "true";
                 imgElement.src = rawUrl;
             } else {
-                imgElement.classList.add('hidden');
-                const overlay = document.getElementById(overlayId);
-                if (overlay) {
-                    overlay.classList.remove('hidden');
-                    overlay.classList.add('flex');
-                }
+                triggerOfflineNoise(imgElement, overlayId);
             }
         }
 
@@ -648,6 +651,7 @@
                 const activeUserWebfigUrl = `http://${cleanHost}/graphs/`;
                 const weatherElemId = `weather-${router.id}`;
                 const overlayId = `offline-overlay-${router.id}`;
+                const imgId = `graph-img-${router.id}`;
 
                 const adminActionButtons = isAdmin ? `
                     <div class="flex space-x-1">
@@ -678,13 +682,12 @@
                                 ${adminActionButtons}
                             </div>
 
-                            <!-- IP & Port Router dengan Fitur Hidden / Fa-Eye Toggle -->
+                            <!-- IP & Port Router dengan Fitur Hidden / Fa-Eye Toggle Dinamis -->
                             <div class="flex justify-between items-center bg-slate-900/90 border border-slate-700/70 px-2 py-1 rounded-md mb-2">
-                                <span class="text-[10px] font-mono text-slate-300 truncate max-w-[170px]" title="Alamat IP & Port Router">
-                                    <span id="ip-masked-${router.id}">${maskedHost} (${router.interfaceName})</span>
-                                    <span id="ip-real-${router.id}" class="hidden">${cleanHost} (${router.interfaceName})</span>
+                                <span id="ip-text-${router.id}" data-masked="true" class="text-[10px] font-mono text-slate-300 truncate max-w-[170px]" title="Alamat IP & Port Router">
+                                    ${maskedHost} (${router.interfaceName})
                                 </span>
-                                <button onclick="toggleIpVisibility('${router.id}')" class="text-slate-400 hover:text-sky-400 p-0.5 text-xs transition ml-1" title="Tampilkan / Sembunyikan IP & Port">
+                                <button onclick="toggleIpVisibility('${router.id}', '${cleanHost}', '${router.interfaceName}')" class="text-slate-400 hover:text-sky-400 p-0.5 text-xs transition ml-1" title="Tampilkan / Sembunyikan IP & Port">
                                     <i id="ip-icon-${router.id}" class="fa-solid fa-eye"></i>
                                 </button>
                             </div>
@@ -702,7 +705,7 @@
                             <!-- Container Grafik dengan Overlay Noise TV Static saat Offline -->
                             <div class="bg-slate-900 rounded-lg p-1 border border-slate-700/50 my-1 flex items-center justify-center min-h-[145px] overflow-hidden relative">
                                 <a href="${fullGraphUrl}" target="_blank" class="w-full block" title="Klik untuk Buka Grafik di Tab Baru">
-                                    <img src="${proxyGraphUrl}" 
+                                    <img id="${imgId}" src="${proxyGraphUrl}" 
                                          alt="Graph ${router.name}" 
                                          class="graph-img rounded"
                                          onerror="handleGraphError(this, '${overlayId}', '${rawGraphUrl}')" />
@@ -734,6 +737,14 @@
 
                 // Ambil cuaca berdasarkan string koordinat
                 fetchWeather(router.coords, weatherElemId);
+
+                // Cek Validasi load gambar setelah jeda singkat (untuk mendeteksi router offline walau event onerror gagal dipanggil browser)
+                setTimeout(() => {
+                    const imgEl = document.getElementById(imgId);
+                    if (imgEl && (!imgEl.complete || imgEl.naturalWidth === 0)) {
+                        triggerOfflineNoise(imgEl, overlayId);
+                    }
+                }, 3500);
             });
         }
 
