@@ -702,11 +702,15 @@
                                          onerror="handleGraphError(this, '${overlayId}', '${rawGraphUrl}')" />
                                 </a>
                                 
-                                <!-- Overlay Offline Noise TV (CRT Noise Effect) -->
+                                <!-- Overlay Offline Noise TV (CRT Noise Effect + SVG Logo PDU) -->
                                 <div id="${overlayId}" class="hidden text-center p-2 bg-slate-950/95 w-full h-full flex flex-col items-center justify-center absolute inset-0 tv-static-bg z-10">
                                     <i class="fa-solid fa-triangle-exclamation text-amber-400 text-xl mb-1 animate-bounce"></i>
-                                    <p class="text-[11px] text-red-400 font-bold uppercase tracking-wider">OFFLINE / NO SIGNAL</p>
-                                    <p class="text-[10px] text-slate-400 font-mono">Cek Router / Webfig</p>
+                                    <p class="text-[11px] text-red-400 font-bold uppercase tracking-wider mb-2">OFFLINE / NO SIGNAL</p>
+                                    <svg class="h-6 w-auto opacity-80" viewBox="0 0 180 65" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M 28 8 C 10 8 10 57 28 57 L 16 57 C 2 57 2 8 16 8 Z" fill="#E11D48"/>
+                                        <text x="90" y="49" font-family="'Arial Black', 'Impact', sans-serif" font-weight="900" font-size="48" fill="#38BDF8" text-anchor="middle" letter-spacing="-1">PDU</text>
+                                        <path d="M 152 8 C 170 8 170 57 152 57 L 164 57 C 178 57 178 8 164 8 Z" fill="#E11D48"/>
+                                    </svg>
                                 </div>
                             </div>
                         </div>
