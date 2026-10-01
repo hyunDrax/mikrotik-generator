@@ -534,18 +534,10 @@
             }
         }
 
-        // FUNGSI MASKING FORMAT IP & PORT
+        // FUNGSI MASKING BINTANG FULL
         function getMaskedHost(fullHost) {
             if (!fullHost) return "";
-            const hostParts = fullHost.split(':');
-            const ip = hostParts[0];
-            const port = hostParts[1] ? `:${hostParts[1]}` : '';
-
-            const ipSegments = ip.split('.');
-            if (ipSegments.length === 4) {
-                return `${ipSegments[0]}.${ipSegments[1]}.***.***${port ? ':***' : ''}`;
-            }
-            return fullHost.replace(/./g, '*');
+            return "***.***.***.***:***";
         }
 
         // TOGGLE VISIBILITY IP & PORT DINAMIS
@@ -738,13 +730,13 @@
                 // Ambil cuaca berdasarkan string koordinat
                 fetchWeather(router.coords, weatherElemId);
 
-                // Cek Validasi load gambar setelah jeda singkat (untuk mendeteksi router offline walau event onerror gagal dipanggil browser)
+                // Cek Validasi load gambar setelah jeda 10 detik (10000ms)
                 setTimeout(() => {
                     const imgEl = document.getElementById(imgId);
                     if (imgEl && (!imgEl.complete || imgEl.naturalWidth === 0)) {
                         triggerOfflineNoise(imgEl, overlayId);
                     }
-                }, 3500);
+                }, 10000);
             });
         }
 
